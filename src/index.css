@@ -1,0 +1,80 @@
+/* Global styles and resets */
+:root {
+  /* Color palette */
+  --color-bg-primary: #1a1a2e;
+  --color-bg-secondary: #2d2d44;
+  --color-accent-gold: #ffd700;
+  --color-accent-orange: #ff6b00;
+  --color-felt-green: #0f5e3a;
+  --color-wood-brown: #8b4513;
+
+  /* Typography */
+  font-family: 'Press Start 2P', monospace;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Pixel-perfect rendering */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+}
+
+/* Selection styling */
+::selection {
+  background: var(--color-accent-gold);
+  color: #000;
+}
+
+::-moz-selection {
+  background: var(--color-accent-gold);
+  color: #000;
+}
+
+/* Disable text selection for game UI elements */
+button,
+.card-sprite,
+.chip-sprite {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+/* Focus styles for accessibility */
+button:focus-visible {
+  outline: 3px solid var(--color-accent-gold);
+  outline-offset: 4px;
+}
+
+/* Loading screen (optional) */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-text {
+  color: var(--color-accent-gold);
+  font-size: 16px;
+  animation: loading-blink 1s ease-in-out infinite;
+}
+
+@keyframes loading-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

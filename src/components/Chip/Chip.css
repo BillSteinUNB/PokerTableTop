@@ -1,0 +1,55 @@
+.chip-container {
+  position: relative;
+  display: inline-block;
+  margin: 4px;
+}
+
+.chip-sprite {
+  /* Sprite is positioned via inline styles */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  position: relative;
+  transition: transform 0.1s ease;
+}
+
+.chip-sprite:hover {
+  transform: translateY(-4px);
+  filter: brightness(1.2);
+  cursor: pointer;
+}
+
+.chip-count {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  background: #ff6b00;
+  color: white;
+  border: 2px solid #000;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  font-family: 'Press Start 2P', monospace;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Pixel-perfect rendering for retro look */
+.chip-sprite::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid transparent;
+  pointer-events: none;
+}
+
+.chip-sprite:active {
+  transform: translateY(-2px);
+}
