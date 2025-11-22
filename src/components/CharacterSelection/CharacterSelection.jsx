@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { CHARACTERS, CARD_COLORS, CHIP_TYPES } from '../../data/gameData';
 import Card from '../Card/Card';
-import { getChipSpriteInfo, CHIP_SPRITE_CONFIG } from '../../utils/spriteConfig';
+import Chip from '../Chip/Chip';
 import './CharacterSelection.css';
 
 /**
@@ -124,31 +124,18 @@ const CharacterSelection = () => {
           <div className="selection-section">
             <label className="section-label">CHIP COLOR</label>
             <div className="chip-grid">
-              {CHIP_TYPES.map((chip) => {
-                const chipInfo = getChipSpriteInfo(chip.color, 'singleChip');
-                return (
-                  <div
-                    key={chip.id}
-                    className={`chip-option ${selectedChipType === chip.id ? 'selected' : ''}`}
-                    onClick={() => setSelectedChipType(chip.id)}
-                  >
-                    <div className="chip-preview">
-                      <div
-                        className="chip-sprite-preview"
-                        style={{
-                          width: `${CHIP_SPRITE_CONFIG.chipWidth * 0.5}px`,
-                          height: `${CHIP_SPRITE_CONFIG.chipHeight * 0.5}px`,
-                          backgroundImage: `url(${chipInfo.path})`,
-                          backgroundPosition: `-${chipInfo.x * 0.5}px -${chipInfo.y * 0.5}px`,
-                          backgroundSize: `${CHIP_SPRITE_CONFIG.chipWidth * CHIP_SPRITE_CONFIG.columns * 0.5}px ${CHIP_SPRITE_CONFIG.chipHeight * CHIP_SPRITE_CONFIG.rows * 0.5}px`,
-                          imageRendering: 'pixelated'
-                        }}
-                      />
-                    </div>
-                    <div className="chip-name">{chip.name}</div>
+              {CHIP_TYPES.map((chip) => (
+                <div
+                  key={chip.id}
+                  className={`chip-option ${selectedChipType === chip.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedChipType(chip.id)}
+                >
+                  <div className="chip-preview">
+                    <Chip color={chip.color} arrangement="singleChip" scale={0.5} />
                   </div>
-                );
-              })}
+                  <div className="chip-name">{chip.name}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

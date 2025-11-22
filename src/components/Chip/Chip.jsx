@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { getChipSpriteInfo, CHIP_SPRITE_CONFIG } from '../../utils/spriteConfig';
+import { getChipImagePath, CHIP_SPRITE_CONFIG } from '../../utils/spriteConfig';
 import './Chip.css';
 
 /**
  * Poker Chip Component
- * Displays a poker chip using sprite sheet with fallback rendering
+ * Displays a poker chip using individual image files with fallback rendering
  *
  * @param {string} color - Chip color (black, red, blue, green, white)
  * @param {string} arrangement - Chip arrangement (singleChip, smallStack, etc.)
@@ -13,7 +13,6 @@ import './Chip.css';
  */
 const Chip = ({ color = 'black', arrangement = 'singleChip', count, scale = 1 }) => {
   const [useSprite, setUseSprite] = useState(true);
-  const chipInfo = getChipSpriteInfo(color, arrangement);
   const config = CHIP_SPRITE_CONFIG;
 
   // Fallback chip colors
@@ -63,24 +62,29 @@ const Chip = ({ color = 'black', arrangement = 'singleChip', count, scale = 1 })
     );
   }
 
-  // Try to use sprite sheet
-  const chipStyle = {
-    width: `${config.chipWidth * scale}px`,
-    height: `${config.chipHeight * scale}px`,
-    backgroundImage: `url(${chipInfo.path})`,
-    backgroundPosition: `-${chipInfo.x * scale}px -${chipInfo.y * scale}px`,
-    backgroundSize: `${config.chipWidth * config.columns * scale}px ${config.chipHeight * config.rows * scale}px`
-  };
+  // Get the image path for this chip
+  const imagePath = getChipImagePath(color, arrangement);
+
+  // If we couldn't get a valid path, use fallback
+  if (!imagePath) {
+    setUseSprite(false);
+    return null; // Will re-render with fallback
+  }
 
   return (
     <div className="chip-container">
       <img
-        src={chipInfo.path}
-        alt=""
-        style={{ display: 'none' }}
+        src={imagePath}
+        alt={`${color} chip ${arrangement}`}
+        className="chip-sprite"
+        style={{
+          width: `${config.chipWidth * scale}px`,
+          height: `${config.chipHeight * scale}px`,
+          imageRendering: 'pixelated',
+          display: 'block'
+        }}
         onError={() => setUseSprite(false)}
       />
-      <div className="chip-sprite" style={chipStyle}></div>
       {count && count > 1 && (
         <div className="chip-count">{count}</div>
       )}

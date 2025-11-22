@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { CARD_SPRITE_CONFIG, getCardSpritePosition, getCardBackSpritePosition } from '../../utils/spriteConfig';
+import { CARD_SPRITE_CONFIG, getCardImagePath, getCardBackImagePath } from '../../utils/spriteConfig';
 import './Card.css';
 
 /**
  * Playing Card Component
- * Displays a playing card using sprite sheet with fallback rendering
+ * Displays a playing card using individual image files with fallback rendering
  *
  * @param {string} suit - Card suit (spades, hearts, clubs, diamonds)
  * @param {string} rank - Card rank (A, 2-10, J, Q, K)
@@ -17,7 +17,7 @@ const Card = ({ suit, rank, faceDown = false, cardBackStyle = 'classic', scale =
   const [useSprite, setUseSprite] = useState(true);
   const config = CARD_SPRITE_CONFIG;
 
-  // Suit colors and symbols
+  // Suit colors and symbols for fallback
   const suitColors = {
     hearts: '#ff0000',
     diamonds: '#ff0000',
@@ -108,45 +108,33 @@ const Card = ({ suit, rank, faceDown = false, cardBackStyle = 'classic', scale =
     }
   }
 
-  // Try to use sprite sheet
-  let cardStyle;
+  // Get the image path based on whether card is face down or up
+  const imagePath = faceDown
+    ? getCardBackImagePath(cardBackStyle)
+    : getCardImagePath(suit, rank);
 
-  if (faceDown) {
-    const backPosition = getCardBackSpritePosition(cardBackStyle);
-    cardStyle = {
-      width: `${config.cardWidth * scale}px`,
-      height: `${config.cardHeight * scale}px`,
-      backgroundImage: `url(${config.spriteSheetPath})`,
-      backgroundPosition: `-${backPosition.x * scale}px -${backPosition.y * scale}px`,
-      backgroundSize: `${config.cardWidth * config.columns * scale}px ${config.cardHeight * config.rows * scale}px`
-    };
-  } else {
-    const position = getCardSpritePosition(suit, rank);
-    cardStyle = {
-      width: `${config.cardWidth * scale}px`,
-      height: `${config.cardHeight * scale}px`,
-      backgroundImage: `url(${config.spriteSheetPath})`,
-      backgroundPosition: `-${position.x * scale}px -${position.y * scale}px`,
-      backgroundSize: `${config.cardWidth * config.columns * scale}px ${config.cardHeight * config.rows * scale}px`
-    };
+  // If we couldn't get a valid path, use fallback
+  if (!imagePath) {
+    setUseSprite(false);
+    return null; // Will re-render with fallback
   }
 
   return (
-    <>
-      <img
-        src={config.spriteSheetPath}
-        alt=""
-        style={{ display: 'none' }}
-        onError={() => setUseSprite(false)}
-      />
-      <div
-        className={`card-sprite ${faceDown ? 'face-down' : 'face-up'} ${onClick ? 'clickable' : ''}`}
-        style={cardStyle}
-        onClick={onClick}
-        role={onClick ? 'button' : undefined}
-        tabIndex={onClick ? 0 : undefined}
-      />
-    </>
+    <img
+      src={imagePath}
+      alt={faceDown ? `Card back (${cardBackStyle})` : `${rank} of ${suit}`}
+      className={`card-sprite ${faceDown ? 'face-down' : 'face-up'} ${onClick ? 'clickable' : ''}`}
+      style={{
+        width: `${config.cardWidth * scale}px`,
+        height: `${config.cardHeight * scale}px`,
+        imageRendering: 'pixelated',
+        display: 'block'
+      }}
+      onClick={onClick}
+      onError={() => setUseSprite(false)}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    />
   );
 };
 

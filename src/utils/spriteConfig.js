@@ -1,157 +1,196 @@
 /**
  * Sprite Configuration for Poker Game
  *
- * This module contains configuration for sprite sheets used in the game.
- * Sprite sheets are more efficient than individual images for games.
+ * This module contains configuration for individual sprite images used in the game.
+ * Uses sliced sprites instead of sprite sheets for easier management.
  */
 
-// Card sprite configuration
-// Layout: 4 rows of suits (Spades, Hearts, Clubs, Diamonds) + 1 row for card backs
-// Each suit row has 13 columns (A, 2-10, J, Q, K)
+// Card image configuration
+// Individual card images named like: aceSpade.png, twoHeart.png, kingDiamond.png
 export const CARD_SPRITE_CONFIG = {
-  spriteSheetPath: '/assets/sprites/CardSprite.png',
   cardWidth: 190,     // Width of each card in pixels
   cardHeight: 265,    // Height of each card in pixels
-  columns: 13,        // Number of cards per row (A-K)
-  rows: 5,            // 4 suit rows + 1 card back row
-  scale: 1,           // Scale factor for display
 
-  // Map suits to row indices
-  suits: {
-    spades: 0,
-    hearts: 1,
-    clubs: 2,
-    diamonds: 3
-  },
+  // Base path for card images
+  basePath: '/assets/sprites/cards/',
 
-  // Map ranks to column indices
+  // Card back base path
+  cardBackPath: '/assets/sprites/cardbacks/',
+
+  // Map ranks to file name format
   ranks: {
-    'A': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5,
-    '7': 6, '8': 7, '9': 8, '10': 9, 'J': 10, 'Q': 11, 'K': 12
+    'A': 'ace',
+    '2': 'two',
+    '3': 'three',
+    '4': 'four',
+    '5': 'five',
+    '6': 'six',
+    '7': 'seven',
+    '8': 'eight',
+    '9': 'nine',
+    '10': 'ten',
+    'J': 'jack',
+    'Q': 'queen',
+    'K': 'king'
   },
 
-  // Card backs are in row 4
-  cardBackRow: 4,
+  // Map suits to file name format
+  suits: {
+    'spades': 'Spade',
+    'hearts': 'Heart',
+    'clubs': 'Club',
+    'diamonds': 'Diamond'
+  },
 
-  // Different card back styles (columns in row 4)
+  // Card back styles
   cardBackStyles: {
-    classic: 0,
-    red: 1,
-    blue: 2,
-    green: 3,
-    purple: 4
+    classic: 'classicBack.png',
+    red: 'redBack.png',
+    blue: 'blueBack.png',
+    green: 'greenBack.png',
+    purple: 'purpleBack.png'
   }
 };
 
-// Chip sprite configuration
-// Each color has its own sprite sheet with 2 rows x 4 columns
-// Row 0: Single chip, small stack, tall stack, angled stack
-// Row 1: Large chip, two chips, short stack, scattered chips
+// Chip image configuration
+// Individual chip images named like: blueChipOne.png, redChipThree.png
 export const CHIP_SPRITE_CONFIG = {
-  chipWidth: 128,     // Width of each chip arrangement in pixels
-  chipHeight: 128,    // Height of each chip arrangement in pixels
-  columns: 4,         // Number of arrangements per row
-  rows: 2,            // Number of rows
-  scale: 1,           // Scale factor for display
+  chipWidth: 128,     // Width of each chip image in pixels
+  chipHeight: 128,    // Height of each chip image in pixels
 
-  // Chip color files
-  colors: {
-    black: '/assets/sprites/BlackChips.jpg',
-    red: '/assets/sprites/RedChips.jpg',
-    blue: '/assets/sprites/BlueChips.jpg',
-    green: '/assets/sprites/GreenChips.jpg',
-    white: '/assets/sprites/WhiteChips.jpg'
+  // Base path for chip images
+  basePath: '/assets/sprites/chips/',
+
+  // Map arrangement names to file name suffixes
+  arrangements: {
+    singleChip: 'One',
+    smallStack: 'Two',
+    tallStack: 'Three',
+    angledStack: 'Four',
+    largeChip: 'Five',
+    twoChips: 'Six',
+    shortStack: 'Seven',
+    scattered: 'Eight'
   },
 
-  // Chip arrangements by row/column
-  arrangements: {
-    singleChip: { row: 0, col: 0 },
-    smallStack: { row: 0, col: 1 },
-    tallStack: { row: 0, col: 2 },
-    angledStack: { row: 0, col: 3 },
-    largeChip: { row: 1, col: 0 },
-    twoChips: { row: 1, col: 1 },
-    shortStack: { row: 1, col: 2 },
-    scattered: { row: 1, col: 3 }
-  }
+  // Valid chip colors
+  colors: ['black', 'red', 'blue', 'green', 'white']
+};
+
+// Character image configuration
+// Individual character images named like: characterOne.png, characterTwo.png
+export const CHARACTER_CONFIG = {
+  basePath: '/assets/sprites/characters/',
+  count: 8,
+
+  // Character names (for display)
+  names: [
+    'Cool Cat',
+    'Lucky Dog',
+    'Wise Owl',
+    'Sly Fox',
+    'Happy Bear',
+    'Swift Rabbit',
+    'Brave Lion',
+    'Clever Raccoon'
+  ]
 };
 
 /**
- * Calculate sprite position for a card face
+ * Get the file path for a specific card
  * @param {string} suit - Card suit (spades, hearts, clubs, diamonds)
  * @param {string} rank - Card rank (A, 2-10, J, Q, K)
- * @returns {Object} Position object with x, y coordinates
+ * @returns {string} Full path to card image
  */
-export function getCardSpritePosition(suit, rank) {
+export function getCardImagePath(suit, rank) {
   const config = CARD_SPRITE_CONFIG;
-  const row = config.suits[suit.toLowerCase()];
-  const col = config.ranks[rank.toUpperCase()];
+  const rankName = config.ranks[rank.toUpperCase()];
+  const suitName = config.suits[suit.toLowerCase()];
 
-  if (row === undefined || col === undefined) {
+  if (!rankName || !suitName) {
     console.warn(`Invalid card: ${rank} of ${suit}`);
-    return { x: 0, y: 0 };
+    return null;
   }
 
-  return {
-    x: col * config.cardWidth,
-    y: row * config.cardHeight
-  };
+  // Format: aceSpade.png, twoHeart.png, kingDiamond.png
+  return `${config.basePath}${rankName}${suitName}.png`;
 }
 
 /**
- * Calculate sprite position for a card back
+ * Get the file path for a card back
  * @param {string} style - Card back style (classic, red, blue, green, purple)
- * @returns {Object} Position object with x, y coordinates
+ * @returns {string} Full path to card back image
  */
-export function getCardBackSpritePosition(style = 'classic') {
+export function getCardBackImagePath(style = 'classic') {
   const config = CARD_SPRITE_CONFIG;
-  const col = config.cardBackStyles[style.toLowerCase()] || 0;
-  const row = config.cardBackRow;
+  const fileName = config.cardBackStyles[style.toLowerCase()];
 
-  return {
-    x: col * config.cardWidth,
-    y: row * config.cardHeight
-  };
+  if (!fileName) {
+    console.warn(`Invalid card back style: ${style}`);
+    return `${config.cardBackPath}${config.cardBackStyles.classic}`;
+  }
+
+  return `${config.cardBackPath}${fileName}`;
 }
 
 /**
- * Get chip sprite sheet path and position
+ * Get the file path for a chip image
  * @param {string} color - Chip color (black, red, blue, green, white)
  * @param {string} arrangement - Chip arrangement type (singleChip, smallStack, etc.)
- * @returns {Object} Sprite info with path and position
+ * @returns {string} Full path to chip image
  */
-export function getChipSpriteInfo(color = 'black', arrangement = 'singleChip') {
+export function getChipImagePath(color = 'black', arrangement = 'singleChip') {
   const config = CHIP_SPRITE_CONFIG;
-  const path = config.colors[color.toLowerCase()];
-  const arr = config.arrangements[arrangement] || config.arrangements.singleChip;
+  const arrangementSuffix = config.arrangements[arrangement];
 
-  if (!path) {
-    console.warn(`Invalid chip color: ${color}`);
-    return {
-      path: config.colors.black,
-      x: 0,
-      y: 0
-    };
+  if (!arrangementSuffix) {
+    console.warn(`Invalid chip arrangement: ${arrangement}`);
+    return null;
   }
 
-  return {
-    path,
-    x: arr.col * config.chipWidth,
-    y: arr.row * config.chipHeight
-  };
+  if (!config.colors.includes(color.toLowerCase())) {
+    console.warn(`Invalid chip color: ${color}`);
+    color = 'black';
+  }
+
+  // Capitalize first letter of color
+  const colorCapitalized = color.charAt(0).toUpperCase() + color.slice(1).toLowerCase();
+
+  // Format: blueChipOne.png, redChipThree.png
+  return `${config.basePath}${color.toLowerCase()}Chip${arrangementSuffix}.png`;
 }
 
 /**
- * Get chip arrangement position (for existing single-sheet approach if needed)
- * @param {number} row - Row index (0-1)
- * @param {number} col - Column index (0-3)
- * @returns {Object} Position object with x, y coordinates
+ * Get the file path for a character image
+ * @param {number} characterId - Character ID (0-7)
+ * @returns {string} Full path to character image
  */
-export function getChipArrangementPosition(row, col) {
-  const config = CHIP_SPRITE_CONFIG;
+export function getCharacterImagePath(characterId) {
+  const config = CHARACTER_CONFIG;
 
-  return {
-    x: col * config.chipWidth,
-    y: row * config.chipHeight
-  };
+  if (characterId < 0 || characterId >= config.count) {
+    console.warn(`Invalid character ID: ${characterId}`);
+    characterId = 0;
+  }
+
+  // Convert number to word (0 -> One, 1 -> Two, etc.)
+  const numbers = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'];
+
+  // Format: characterOne.png, characterTwo.png
+  return `${config.basePath}character${numbers[characterId]}.png`;
+}
+
+/**
+ * Get character name by ID
+ * @param {number} characterId - Character ID (0-7)
+ * @returns {string} Character display name
+ */
+export function getCharacterName(characterId) {
+  const config = CHARACTER_CONFIG;
+
+  if (characterId < 0 || characterId >= config.count) {
+    return config.names[0];
+  }
+
+  return config.names[characterId];
 }

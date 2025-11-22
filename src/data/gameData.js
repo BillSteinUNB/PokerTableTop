@@ -1,17 +1,20 @@
+import { getCharacterImagePath, getCharacterName } from '../utils/spriteConfig';
+
 // Character avatars data
 // Each character has a face image for selection
+// Using naming convention: characterOne.png, characterTwo.png, etc.
 export const CHARACTERS = [
-  { id: 0, name: 'Cool Cat', imagePath: '/assets/sprites/characters/cat.png', emoji: '😎' },
-  { id: 1, name: 'Robot', imagePath: '/assets/sprites/characters/robot.png', emoji: '🤖' },
-  { id: 2, name: 'Cowboy', imagePath: '/assets/sprites/characters/cowboy.png', emoji: '🤠' },
-  { id: 3, name: 'Pirate', imagePath: '/assets/sprites/characters/pirate.png', emoji: '🏴‍☠️' },
-  { id: 4, name: 'Ninja', imagePath: '/assets/sprites/characters/ninja.png', emoji: '🥷' },
-  { id: 5, name: 'Wizard', imagePath: '/assets/sprites/characters/wizard.png', emoji: '🧙' },
-  { id: 6, name: 'Knight', imagePath: '/assets/sprites/characters/knight.png', emoji: '⚔️' },
-  { id: 7, name: 'Alien', imagePath: '/assets/sprites/characters/alien.png', emoji: '👽' }
+  { id: 0, name: getCharacterName(0), imagePath: getCharacterImagePath(0), emoji: '😎' },
+  { id: 1, name: getCharacterName(1), imagePath: getCharacterImagePath(1), emoji: '🤖' },
+  { id: 2, name: getCharacterName(2), imagePath: getCharacterImagePath(2), emoji: '🤠' },
+  { id: 3, name: getCharacterName(3), imagePath: getCharacterImagePath(3), emoji: '🏴‍☠️' },
+  { id: 4, name: getCharacterName(4), imagePath: getCharacterImagePath(4), emoji: '🥷' },
+  { id: 5, name: getCharacterName(5), imagePath: getCharacterImagePath(5), emoji: '🧙' },
+  { id: 6, name: getCharacterName(6), imagePath: getCharacterImagePath(6), emoji: '⚔️' },
+  { id: 7, name: getCharacterName(7), imagePath: getCharacterImagePath(7), emoji: '👽' }
 ];
 
-// Card color options - using card back styles from sprite sheet
+// Card color options - using card back styles
 export const CARD_COLORS = [
   { id: 'classic', name: 'Classic' },
   { id: 'red', name: 'Red' },
@@ -28,12 +31,3 @@ export const CHIP_TYPES = [
   { id: 'green', name: 'Green', color: 'green' },
   { id: 'white', name: 'White', color: 'white' }
 ];
-
-// Avatar sprite configuration
-export const AVATAR_SPRITE_CONFIG = {
-  spriteSheetPath: '/assets/sprites/avatars.png',
-  avatarWidth: 48,
-  avatarHeight: 48,
-  columns: 8,
-  rows: 1
-};
