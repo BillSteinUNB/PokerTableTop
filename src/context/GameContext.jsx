@@ -1,4 +1,13 @@
 import React, { createContext, useContext, useState } from 'react';
+import {
+  initializeGame,
+  startNewHand,
+  processPlayerAction,
+  moveToNextHand,
+  getValidActions,
+  getMinRaise,
+  ROUND_STATES
+} from '../utils/gameEngine';
 
 const GameContext = createContext();
 
@@ -74,22 +83,38 @@ export function GameProvider({ children }) {
   };
 
   const startGame = () => {
-    // Initialize game state with lobby players
-    setGameState({
-      pot: 0,
-      currentPlayerIndex: 0,
-      communityCards: [],
-      players: lobbyData.players.map((player, index) => ({
-        ...player,
-        chips: lobbyData.settings.startingChips,
-        hand: [],
-        currentBet: 0,
-        folded: false,
-        position: index
-      })),
-      roundState: 'preflop'
-    });
+    // Initialize game with game engine
+    const initialGameState = initializeGame(lobbyData.players, lobbyData.settings);
+    const gameWithCards = startNewHand(initialGameState);
+    setGameState(gameWithCards);
     navigateTo('game');
+  };
+
+  // Game action handlers
+  const handlePlayerAction = (action, amount = 0) => {
+    const newGameState = processPlayerAction(gameState, action, amount);
+    setGameState(newGameState);
+
+    // If hand is complete, wait a bit then move to next hand
+    if (newGameState.roundState === ROUND_STATES.SHOWDOWN) {
+      setTimeout(() => {
+        const nextHandState = moveToNextHand(newGameState);
+        setGameState(nextHandState);
+      }, 5000); // Wait 5 seconds to show results
+    }
+  };
+
+  const handleNextHand = () => {
+    const nextHandState = moveToNextHand(gameState);
+    setGameState(nextHandState);
+  };
+
+  const getPlayerValidActions = () => {
+    return getValidActions(gameState);
+  };
+
+  const getMinimumRaise = () => {
+    return getMinRaise(gameState);
   };
 
   const value = {
@@ -103,7 +128,12 @@ export function GameProvider({ children }) {
     updateLobbySettings,
     startGame,
     gameState,
-    setGameState
+    setGameState,
+    handlePlayerAction,
+    handleNextHand,
+    getPlayerValidActions,
+    getMinimumRaise,
+    ROUND_STATES
   };
 
   return (
