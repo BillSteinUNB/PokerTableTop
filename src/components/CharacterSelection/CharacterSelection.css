@@ -151,6 +151,15 @@
   image-rendering: pixelated;
 }
 
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
 .avatar-emoji {
   font-size: 40px;
 }
@@ -185,6 +194,14 @@
   border-color: #ffd700;
   background: rgba(255, 215, 0, 0.2);
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.card-back-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 8px;
+  min-height: 80px;
 }
 
 .color-swatch {
@@ -230,6 +247,13 @@
 
 .chip-preview {
   margin-bottom: 12px;
+}
+
+.chip-sprite-preview {
+  display: inline-block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .chip-icon {

@@ -1,30 +1,32 @@
 // Character avatars data
-// These reference sprite positions for 8 different pixel art characters
+// Each character has a face image for selection
 export const CHARACTERS = [
-  { id: 0, name: 'Cool Cat', spriteIndex: 0 },
-  { id: 1, name: 'Robot', spriteIndex: 1 },
-  { id: 2, name: 'Cowboy', spriteIndex: 2 },
-  { id: 3, name: 'Pirate', spriteIndex: 3 },
-  { id: 4, name: 'Ninja', spriteIndex: 4 },
-  { id: 5, name: 'Wizard', spriteIndex: 5 },
-  { id: 6, name: 'Knight', spriteIndex: 6 },
-  { id: 7, name: 'Alien', spriteIndex: 7 }
+  { id: 0, name: 'Cool Cat', imagePath: '/assets/sprites/characters/cat.png', emoji: '😎' },
+  { id: 1, name: 'Robot', imagePath: '/assets/sprites/characters/robot.png', emoji: '🤖' },
+  { id: 2, name: 'Cowboy', imagePath: '/assets/sprites/characters/cowboy.png', emoji: '🤠' },
+  { id: 3, name: 'Pirate', imagePath: '/assets/sprites/characters/pirate.png', emoji: '🏴‍☠️' },
+  { id: 4, name: 'Ninja', imagePath: '/assets/sprites/characters/ninja.png', emoji: '🥷' },
+  { id: 5, name: 'Wizard', imagePath: '/assets/sprites/characters/wizard.png', emoji: '🧙' },
+  { id: 6, name: 'Knight', imagePath: '/assets/sprites/characters/knight.png', emoji: '⚔️' },
+  { id: 7, name: 'Alien', imagePath: '/assets/sprites/characters/alien.png', emoji: '👽' }
 ];
 
-// Card color options
+// Card color options - using card back styles from sprite sheet
 export const CARD_COLORS = [
-  { id: 'classic', name: 'Classic', color: '#FFFFFF' },
-  { id: 'red', name: 'Red', color: '#FF4444' },
-  { id: 'blue', name: 'Blue', color: '#4444FF' },
-  { id: 'green', name: 'Green', color: '#44FF44' },
-  { id: 'purple', name: 'Purple', color: '#AA44FF' }
+  { id: 'classic', name: 'Classic' },
+  { id: 'red', name: 'Red' },
+  { id: 'blue', name: 'Blue' },
+  { id: 'green', name: 'Green' },
+  { id: 'purple', name: 'Purple' }
 ];
 
-// Chip type options
+// Chip type options - corresponding to chip color files
 export const CHIP_TYPES = [
-  { id: 'classic', name: 'Classic' },
-  { id: 'casino', name: 'Casino' },
-  { id: 'neon', name: 'Neon' }
+  { id: 'black', name: 'Black', color: 'black' },
+  { id: 'red', name: 'Red', color: 'red' },
+  { id: 'blue', name: 'Blue', color: 'blue' },
+  { id: 'green', name: 'Green', color: 'green' },
+  { id: 'white', name: 'White', color: 'white' }
 ];
 
 // Avatar sprite configuration

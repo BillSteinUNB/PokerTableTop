@@ -160,6 +160,71 @@
   box-shadow: 0 2px 0 #00bb66;
 }
 
+.demo-section {
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.demo-divider {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.demo-divider span {
+  background: #2d2d44;
+  padding: 0 16px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  font-family: 'Press Start 2P', monospace;
+  position: relative;
+  z-index: 1;
+}
+
+.demo-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  z-index: 0;
+}
+
+.demo-btn {
+  width: 100%;
+  padding: 20px 32px;
+  font-size: 16px;
+  font-family: 'Press Start 2P', monospace;
+  background: #9333ea;
+  border: 4px solid #7e22ce;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 0 #6b21a8;
+  margin-bottom: 12px;
+}
+
+.demo-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 #6b21a8;
+  filter: brightness(1.2);
+}
+
+.demo-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 0 #6b21a8;
+}
+
+.demo-hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 9px;
+  font-family: 'Press Start 2P', monospace;
+}
+
 .create-hint {
   margin-top: 24px;
 }
