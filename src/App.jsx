@@ -31,7 +31,6 @@ function GameRouter() {
       return (
         <div className="game-view">
           <TopDownTable />
-          <Controls />
         </div>
       );
     default:

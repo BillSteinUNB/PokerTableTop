@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGame } from '../../context/GameContext';
+import { initializeGame, startNewHand } from '../../utils/gameEngine';
 import './CreateLobby.css';
 
 /**
@@ -29,43 +30,27 @@ const CreateLobby = () => {
 
     updatePlayerData(demoPlayer);
 
-    // Create lobby code
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-
     // Create 3 fake players for demo
-    const fakePlayers = [
-      { name: 'Alice', avatar: 1, cardColor: 'red', chipType: 'red', chips: 1000, hand: [], currentBet: 0, folded: false, position: 1 },
-      { name: 'Bob', avatar: 2, cardColor: 'blue', chipType: 'blue', chips: 1000, hand: [], currentBet: 0, folded: false, position: 2 },
-      { name: 'Charlie', avatar: 3, cardColor: 'green', chipType: 'green', chips: 1000, hand: [], currentBet: 0, folded: false, position: 3 }
+    const allPlayers = [
+      demoPlayer,
+      { name: 'Alice', avatar: 1, cardColor: 'red', chipType: 'red' },
+      { name: 'Bob', avatar: 2, cardColor: 'blue', chipType: 'blue' },
+      { name: 'Charlie', avatar: 3, cardColor: 'green', chipType: 'green' }
     ];
 
-    // Initialize game state for demo
-    setGameState({
-      pot: 150,
-      currentPlayerIndex: 0,
-      communityCards: [
-        { suit: 'hearts', rank: 'A', faceDown: false },
-        { suit: 'diamonds', rank: 'K', faceDown: false },
-        { suit: 'clubs', rank: 'Q', faceDown: false },
-        { suit: null, rank: null, faceDown: true },
-        { suit: null, rank: null, faceDown: true }
-      ],
-      players: [
-        {
-          ...demoPlayer,
-          chips: 1000,
-          hand: [
-            { suit: 'spades', rank: 'A' },
-            { suit: 'spades', rank: 'K' }
-          ],
-          currentBet: 50,
-          folded: false,
-          position: 0
-        },
-        ...fakePlayers
-      ],
-      roundState: 'flop'
-    });
+    // Use game engine to initialize and start game
+    const gameSettings = {
+      smallBlind: 5,
+      bigBlind: 10,
+      startingChips: 1000,
+      minPlayers: 2,
+      maxPlayers: 8
+    };
+
+    const initialGameState = initializeGame(allPlayers, gameSettings);
+    const gameWithCards = startNewHand(initialGameState);
+
+    setGameState(gameWithCards);
 
     // Go directly to game view
     navigateTo('game');
