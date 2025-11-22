@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameContextMultiplayer';
 import { CHARACTERS, CARD_COLORS, CHIP_TYPES } from '../../data/gameData';
 import Card from '../Card/Card';
 import Chip from '../Chip/Chip';
@@ -23,7 +23,7 @@ const CharacterSelection = () => {
     setNameError('');
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (name.trim().length < 2) {
       setNameError('Name must be at least 2 characters');
       return;
@@ -37,8 +37,14 @@ const CharacterSelection = () => {
       chipType: selectedChipType
     });
 
-    // Navigate to lobby
-    navigateTo('lobby');
+    // Create multiplayer lobby
+    try {
+      await createLobby(true); // true = multiplayer mode
+      // Navigate to lobby
+      navigateTo('lobby');
+    } catch (error) {
+      setNameError(`Failed to create lobby: ${error.message}`);
+    }
   };
 
   const handleBack = () => {
