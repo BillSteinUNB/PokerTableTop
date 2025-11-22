@@ -1,5 +1,5 @@
-import React from 'react';
-import { AVATAR_SPRITE_CONFIG } from '../../data/gameData';
+import React, { useState } from 'react';
+import { getCharacterImagePath } from '../../utils/spriteConfig';
 import './PlayerAvatar.css';
 
 /**
@@ -12,25 +12,52 @@ import './PlayerAvatar.css';
  * @param {boolean} showName - Whether to display name below avatar
  */
 const PlayerAvatar = ({ avatarId = 0, name, scale = 1, showName = true }) => {
-  const config = AVATAR_SPRITE_CONFIG;
+  const [useSprite, setUseSprite] = useState(true);
 
-  const avatarStyle = {
-    width: `${config.avatarWidth * scale}px`,
-    height: `${config.avatarHeight * scale}px`,
-    backgroundImage: `url(${config.spriteSheetPath})`,
-    backgroundPosition: `-${avatarId * config.avatarWidth * scale}px 0`,
-    backgroundSize: `${config.avatarWidth * config.columns * scale}px ${config.avatarHeight * scale}px`
-  };
-
-  // Emoji fallback while sprite sheet doesn't exist
+  // Emoji fallback
   const emojiAvatars = ['😎', '🤖', '🤠', '🏴‍☠️', '🥷', '🧙', '⚔️', '👽'];
+
+  // Try to use character image
+  const imagePath = getCharacterImagePath(avatarId);
+
+  if (!useSprite || !imagePath) {
+    // Fallback to emoji
+    return (
+      <div className="player-avatar-container">
+        <div
+          className="avatar-emoji-fallback"
+          style={{
+            fontSize: `${48 * scale}px`,
+            width: `${64 * scale}px`,
+            height: `${64 * scale}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {emojiAvatars[avatarId] || '😎'}
+        </div>
+        {showName && name && (
+          <div className="avatar-name">{name}</div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="player-avatar-container">
-      <div className="avatar-sprite" style={avatarStyle}>
-        {/* Emoji fallback */}
-        <span className="avatar-emoji-fallback">{emojiAvatars[avatarId]}</span>
-      </div>
+      <img
+        src={imagePath}
+        alt={name || `Avatar ${avatarId}`}
+        className="avatar-sprite"
+        style={{
+          width: `${64 * scale}px`,
+          height: `${64 * scale}px`,
+          imageRendering: 'pixelated',
+          display: 'block'
+        }}
+        onError={() => setUseSprite(false)}
+      />
       {showName && name && (
         <div className="avatar-name">{name}</div>
       )}
