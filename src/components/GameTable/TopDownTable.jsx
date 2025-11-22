@@ -103,14 +103,14 @@ const TopDownTable = () => {
                           key={cardIndex}
                           suit={card.suit}
                           rank={card.rank}
-                          scale={0.7}
+                          scale={0.3}
                         />
                       ))
                     ) : (
-                      // Show other players' cards face down
+                      // Show other players' cards face down with their card back color
                       <>
-                        <Card faceDown scale={0.7} />
-                        <Card faceDown scale={0.7} />
+                        <Card faceDown cardBackStyle={player.cardColor || 'classic'} scale={0.3} />
+                        <Card faceDown cardBackStyle={player.cardColor || 'classic'} scale={0.3} />
                       </>
                     )}
                   </div>
