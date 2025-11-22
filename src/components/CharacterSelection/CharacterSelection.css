@@ -1,0 +1,333 @@
+.character-selection {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2e;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.2) 0px,
+      transparent 1px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.2) 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.2) 0px,
+      transparent 1px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.2) 3px
+    );
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+
+.selection-container {
+  background: #2d2d44;
+  border: 6px solid #ffd700;
+  padding: 48px;
+  box-shadow:
+    0 0 40px rgba(255, 215, 0, 0.4),
+    inset 0 0 20px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 100%;
+}
+
+.selection-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.selection-title {
+  color: #ffd700;
+  font-size: 28px;
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 3px;
+  margin-bottom: 12px;
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+.selection-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-family: 'Press Start 2P', monospace;
+}
+
+.selection-content {
+  margin-bottom: 32px;
+}
+
+.selection-section {
+  margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.selection-section:last-child {
+  border-bottom: none;
+}
+
+.section-label {
+  display: block;
+  color: #ffaa00;
+  font-size: 12px;
+  font-family: 'Press Start 2P', monospace;
+  margin-bottom: 16px;
+  letter-spacing: 2px;
+}
+
+.name-input {
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 20px;
+  font-family: 'Press Start 2P', monospace;
+  background: rgba(0, 0, 0, 0.6);
+  border: 4px solid #ffd700;
+  color: #fff;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.name-input:focus {
+  border-color: #ffaa00;
+  box-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+.char-count {
+  text-align: right;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  font-family: 'Press Start 2P', monospace;
+  margin-top: 8px;
+}
+
+.error-message {
+  color: #ff4444;
+  font-size: 10px;
+  font-family: 'Press Start 2P', monospace;
+  margin-top: 8px;
+  animation: shake 0.5s ease;
+}
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.avatar-option {
+  background: rgba(0, 0, 0, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.avatar-option:hover {
+  border-color: rgba(255, 215, 0, 0.5);
+  transform: translateY(-4px);
+}
+
+.avatar-option.selected {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+.avatar-placeholder {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  image-rendering: pixelated;
+}
+
+.avatar-emoji {
+  font-size: 40px;
+}
+
+.avatar-name {
+  color: #fff;
+  font-size: 9px;
+  font-family: 'Press Start 2P', monospace;
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.color-option {
+  background: rgba(0, 0, 0, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.color-option:hover {
+  border-color: rgba(255, 215, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.color-option.selected {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.color-swatch {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 8px;
+  border: 3px solid #000;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  image-rendering: pixelated;
+}
+
+.color-name {
+  color: #fff;
+  font-size: 8px;
+  font-family: 'Press Start 2P', monospace;
+}
+
+.chip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.chip-option {
+  background: rgba(0, 0, 0, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.chip-option:hover {
+  border-color: rgba(255, 215, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.chip-option.selected {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.chip-preview {
+  margin-bottom: 12px;
+}
+
+.chip-icon {
+  font-size: 48px;
+  color: #ff6b00;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.chip-name {
+  color: #fff;
+  font-size: 10px;
+  font-family: 'Press Start 2P', monospace;
+}
+
+.selection-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.selection-btn {
+  flex: 1;
+  padding: 20px 32px;
+  font-size: 14px;
+  font-family: 'Press Start 2P', monospace;
+  border: 4px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.btn-back {
+  background: #666;
+  border-color: #333;
+  color: #fff;
+  box-shadow: 0 6px 0 #333;
+}
+
+.btn-back:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 #333;
+}
+
+.btn-back:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 0 #333;
+}
+
+.btn-continue {
+  background: #ffd700;
+  border-color: #ffaa00;
+  color: #000;
+  box-shadow: 0 6px 0 #ffaa00;
+}
+
+.btn-continue:hover:not(:disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 #ffaa00;
+  filter: brightness(1.2);
+}
+
+.btn-continue:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 0 #ffaa00;
+}
+
+.btn-continue:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .selection-container {
+    padding: 32px 24px;
+  }
+
+  .selection-title {
+    font-size: 20px;
+  }
+
+  .avatar-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .color-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .chip-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+
+  .name-input {
+    font-size: 16px;
+  }
+
+  .selection-btn {
+    font-size: 11px;
+    padding: 16px 24px;
+  }
+}

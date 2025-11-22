@@ -5,12 +5,15 @@ import './Controls.css';
  * Game Controls Component
  * Player action buttons and bet controls
  */
-const Controls = () => {
+const Controls = ({ onAction }) => {
   const [betAmount, setBetAmount] = useState(0);
 
   const handleAction = (action) => {
     console.log(`Player action: ${action}`, { betAmount });
-    // TODO: Implement game logic
+    // TODO: Implement game logic with game state
+    if (typeof onAction === 'function') {
+      onAction(action, betAmount);
+    }
   };
 
   const adjustBet = (amount) => {

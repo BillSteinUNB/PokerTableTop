@@ -1,6 +1,17 @@
-# 🎰 Pixel Poker - Retro Arcade Card Game
+# 🎰 Pixel Poker - Multiplayer Retro Arcade Card Game
 
-A pixel-art arcade-style poker game built with React and CSS, featuring sprite sheets for cards and chips with a classic game table aesthetic.
+A multiplayer pixel-art arcade-style poker game built with React and CSS. Features lobby system, character customization, sprite sheets for cards and chips, and a top-down table view where you can play with friends!
+
+## ✨ Features
+
+- 🎮 **Multiplayer Lobby System** - Create or join games with 6-digit codes
+- 👤 **Character Customization** - Choose from 8 pixel-art avatars, customize card colors and chip styles
+- 🎲 **Top-Down Table View** - See all players positioned around the table
+- 🃏 **Your Cards / Their Backs** - See your cards face-up, opponents' cards face-down
+- 💰 **Chip Management** - Track chips, bets, and pot in real-time
+- 🎨 **Retro Pixel Art** - Classic arcade aesthetics throughout
+- 📱 **Responsive Design** - Works on desktop, tablet, and mobile
+- 🔄 **Real-time Updates** - (Backend integration ready - see MULTIPLAYER_GUIDE.md)
 
 ## 🚀 Quick Start
 
@@ -18,47 +29,57 @@ npm run build
 npm run preview
 ```
 
+## 🎮 How to Play
+
+1. **Start the app** - Opens to main menu
+2. **Create Lobby** or **Join Game**
+   - Create: Get a 6-digit code to share with friends
+   - Join: Enter a friend's lobby code
+3. **Customize Your Character**
+   - Choose name, avatar, card color, and chip style
+4. **Wait in Lobby** - Host starts when everyone's ready
+5. **Play Poker!** - Top-down view with your cards visible
+
+**Note:** Current version uses local state. For true multiplayer across different computers, see `MULTIPLAYER_GUIDE.md` for backend setup instructions.
+
 ## 📁 Project Structure
 
 ```
 PokerTableTop/
 ├── public/
 │   └── assets/
-│       └── sprites/          # Sprite sheet images go here
-│           ├── cards.png     # Playing cards sprite sheet
-│           └── chips.png     # Poker chips sprite sheet
+│       └── sprites/              # Sprite sheet images go here
+│           ├── cards.png         # Playing cards sprite sheet (52 cards)
+│           ├── chips.png         # Poker chips sprite sheet (5 types)
+│           └── avatars.png       # Player avatars sprite sheet (8 characters)
 ├── src/
-│   ├── assets/
-│   │   ├── sprites/          # Alternative location for sprites
-│   │   └── fonts/            # Custom pixel fonts
 │   ├── components/
-│   │   ├── Card/
-│   │   │   ├── Card.jsx      # Playing card component
-│   │   │   └── Card.css      # Card styling
-│   │   ├── Chip/
-│   │   │   ├── Chip.jsx      # Poker chip component
-│   │   │   └── Chip.css      # Chip styling
+│   │   ├── MainMenu/             # Main menu screen
+│   │   ├── JoinGame/             # Join game modal
+│   │   ├── CreateLobby/          # Create lobby screen
+│   │   ├── CharacterSelection/   # Character customization
+│   │   ├── Lobby/                # Waiting room
 │   │   ├── GameTable/
-│   │   │   ├── GameTable.jsx # Main table layout
-│   │   │   └── GameTable.css # Table styling
-│   │   ├── DealerArea/
-│   │   │   ├── DealerArea.jsx # Dealer & community cards
-│   │   │   └── DealerArea.css
-│   │   ├── PlayerArea/
-│   │   │   ├── PlayerArea.jsx # Player hand & chips
-│   │   │   └── PlayerArea.css
-│   │   └── Controls/
-│   │       ├── Controls.jsx   # Game action buttons
-│   │       └── Controls.css
+│   │   │   ├── TopDownTable.jsx  # Top-down table view
+│   │   │   └── TopDownTable.css
+│   │   ├── PlayerAvatar/         # Player avatar component
+│   │   ├── Card/                 # Playing card component
+│   │   ├── Chip/                 # Poker chip component
+│   │   └── Controls/             # Game action buttons
+│   ├── context/
+│   │   └── GameContext.jsx       # Global state management
+│   ├── data/
+│   │   └── gameData.js           # Character & customization data
 │   ├── utils/
-│   │   └── spriteConfig.js   # Sprite sheet configuration
-│   ├── App.jsx               # Main app component
-│   ├── App.css               # App-level styles
-│   ├── main.jsx              # Entry point
-│   └── index.css             # Global styles
-├── index.html
-├── vite.config.js
-└── package.json
+│   │   └── spriteConfig.js       # Sprite sheet configuration
+│   ├── App.jsx                   # Main app with routing
+│   ├── App.css                   # App-level styles
+│   ├── main.jsx                  # Entry point
+│   └── index.css                 # Global styles
+├── MULTIPLAYER_GUIDE.md          # Backend integration guide
+├── SPRITE_SHEET_GUIDE.md         # Sprite creation guide
+├── EXAMPLES.md                   # Component usage examples
+└── README.md                     # This file
 ```
 
 ## 🎨 Sprite Sheet Guidelines
@@ -185,19 +206,23 @@ export const CARD_SPRITE_CONFIG = {
 };
 ```
 
-## 🎯 Features
+## 🎯 Implemented Features
 
+- ✅ Complete multiplayer lobby system
+- ✅ Character customization (8 avatars, 5 card colors, 3 chip styles)
+- ✅ Top-down table view with player positioning
+- ✅ Lobby creation with 6-digit codes
+- ✅ Waiting room with player list
 - ✅ Pixel-art retro arcade aesthetic
 - ✅ Sprite sheet-based rendering for performance
 - ✅ Responsive design (desktop, tablet, mobile)
 - ✅ Smooth animations and transitions
-- ✅ Classic poker table layout
 - ✅ Player action controls (Fold, Check, Call, Raise, All-in)
 - ✅ Bet adjustment system
 - ✅ Modular component architecture
-- 🔄 Game logic (to be implemented)
-- 🔄 Multi-player support (to be implemented)
-- 🔄 Sound effects (to be implemented)
+- 🔄 Backend integration (WebSocket/Firebase - see guide)
+- 🔄 Poker game logic (hand evaluation, betting rounds)
+- 🔄 Sound effects and music
 
 ## 🎨 Styling & Theming
 

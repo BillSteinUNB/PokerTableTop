@@ -1,0 +1,271 @@
+.main-menu {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2e;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.2) 0px,
+      transparent 1px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.2) 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.2) 0px,
+      transparent 1px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.2) 3px
+    );
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-container {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  padding: 40px;
+}
+
+.game-logo {
+  margin-bottom: 60px;
+}
+
+.logo-text {
+  color: #ffd700;
+  font-size: 48px;
+  text-shadow:
+    4px 4px 0 #ff6b00,
+    8px 8px 0 rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(255, 215, 0, 0.6);
+  letter-spacing: 6px;
+  margin-bottom: 16px;
+  animation: logo-glow 3s ease-in-out infinite;
+}
+
+.logo-pixel {
+  display: inline-block;
+  animation: spin-pixel 4s linear infinite;
+  margin: 0 20px;
+  font-size: 54px;
+}
+
+@keyframes spin-pixel {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes logo-glow {
+  0%, 100% {
+    text-shadow:
+      4px 4px 0 #ff6b00,
+      8px 8px 0 rgba(0, 0, 0, 0.5),
+      0 0 30px rgba(255, 215, 0, 0.6);
+  }
+  50% {
+    text-shadow:
+      4px 4px 0 #ff6b00,
+      8px 8px 0 rgba(0, 0, 0, 0.5),
+      0 0 50px rgba(255, 215, 0, 1);
+  }
+}
+
+.logo-subtitle {
+  color: #fff;
+  font-size: 14px;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 3px;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-bottom: 60px;
+}
+
+.menu-btn {
+  position: relative;
+  background: #2d2d44;
+  border: 6px solid #ff6b00;
+  padding: 32px 48px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow:
+    0 8px 0 #c55300,
+    0 0 20px rgba(255, 107, 0, 0.3);
+  min-width: 400px;
+}
+
+.menu-btn:hover {
+  transform: translateY(-8px);
+  box-shadow:
+    0 12px 0 #c55300,
+    0 0 30px rgba(255, 107, 0, 0.6);
+  border-color: #ffaa00;
+}
+
+.menu-btn:active {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 0 #c55300,
+    0 0 20px rgba(255, 107, 0, 0.3);
+}
+
+.btn-join {
+  border-color: #00aaff;
+  box-shadow:
+    0 8px 0 #0077bb,
+    0 0 20px rgba(0, 170, 255, 0.3);
+}
+
+.btn-join:hover {
+  box-shadow:
+    0 12px 0 #0077bb,
+    0 0 30px rgba(0, 170, 255, 0.6);
+  border-color: #44ccff;
+}
+
+.btn-join:active {
+  box-shadow:
+    0 4px 0 #0077bb,
+    0 0 20px rgba(0, 170, 255, 0.3);
+}
+
+.btn-create {
+  border-color: #00ff88;
+  box-shadow:
+    0 8px 0 #00bb66,
+    0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.btn-create:hover {
+  box-shadow:
+    0 12px 0 #00bb66,
+    0 0 30px rgba(0, 255, 136, 0.6);
+  border-color: #44ffaa;
+}
+
+.btn-create:active {
+  box-shadow:
+    0 4px 0 #00bb66,
+    0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.btn-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  filter: grayscale(0);
+}
+
+.btn-text {
+  color: #fff;
+  font-size: 24px;
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 4px;
+  margin-bottom: 12px;
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+.btn-hint {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 1px;
+}
+
+.menu-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.decoration-card {
+  position: absolute;
+  font-size: 120px;
+  opacity: 0.1;
+  animation: float 6s ease-in-out infinite;
+}
+
+.card-left {
+  top: 20%;
+  left: 10%;
+  color: #00ff88;
+  animation-delay: 0s;
+}
+
+.card-right {
+  top: 60%;
+  right: 10%;
+  color: #ff6b00;
+  animation-delay: 3s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-30px) rotate(15deg);
+  }
+}
+
+.menu-footer {
+  margin-top: 40px;
+}
+
+.menu-footer p {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  font-family: 'Press Start 2P', monospace;
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .logo-text {
+    font-size: 32px;
+  }
+
+  .logo-pixel {
+    font-size: 36px;
+    margin: 0 12px;
+  }
+
+  .logo-subtitle {
+    font-size: 10px;
+  }
+
+  .menu-btn {
+    min-width: 300px;
+    padding: 24px 32px;
+  }
+
+  .btn-icon {
+    font-size: 36px;
+  }
+
+  .btn-text {
+    font-size: 16px;
+  }
+
+  .btn-hint {
+    font-size: 8px;
+  }
+
+  .decoration-card {
+    font-size: 80px;
+  }
+}

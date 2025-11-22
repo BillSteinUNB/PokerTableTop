@@ -1,50 +1,55 @@
 import React from 'react';
-import GameTable from './components/GameTable/GameTable';
-import DealerArea from './components/DealerArea/DealerArea';
-import PlayerArea from './components/PlayerArea/PlayerArea';
+import { GameProvider, useGame } from './context/GameContext';
+import MainMenu from './components/MainMenu/MainMenu';
+import JoinGame from './components/JoinGame/JoinGame';
+import CreateLobby from './components/CreateLobby/CreateLobby';
+import CharacterSelection from './components/CharacterSelection/CharacterSelection';
+import Lobby from './components/Lobby/Lobby';
+import TopDownTable from './components/GameTable/TopDownTable';
 import Controls from './components/Controls/Controls';
 import './App.css';
 
 /**
+ * Game Router Component
+ * Handles navigation between different game screens
+ */
+function GameRouter() {
+  const { currentView } = useGame();
+
+  switch (currentView) {
+    case 'mainMenu':
+      return <MainMenu />;
+    case 'joinGame':
+      return <JoinGame />;
+    case 'createLobby':
+      return <CreateLobby />;
+    case 'characterSelect':
+      return <CharacterSelection />;
+    case 'lobby':
+      return <Lobby />;
+    case 'game':
+      return (
+        <div className="game-view">
+          <TopDownTable />
+          <Controls />
+        </div>
+      );
+    default:
+      return <MainMenu />;
+  }
+}
+
+/**
  * Main App Component
- * Pixel-art arcade poker game
+ * Multiplayer pixel-art poker game
  */
 function App() {
   return (
-    <div className="app">
-      <GameTable>
-        {/* Game title/header */}
-        <div className="game-header">
-          <h1 className="game-title">
-            <span className="title-pixel">◆</span>
-            PIXEL POKER
-            <span className="title-pixel">◆</span>
-          </h1>
-          <div className="game-subtitle">~ Retro Arcade Edition ~</div>
-        </div>
-
-        {/* Dealer and community cards area */}
-        <DealerArea />
-
-        {/* Player hand area */}
-        <PlayerArea
-          playerName="Player 1"
-          chipCount={1500}
-          currentBet={150}
-          isActive={true}
-        />
-
-        {/* Game controls */}
-        <Controls />
-
-        {/* Status message area */}
-        <div className="status-message">
-          <div className="message-text">
-            Place your bets! Good luck!
-          </div>
-        </div>
-      </GameTable>
-    </div>
+    <GameProvider>
+      <div className="app">
+        <GameRouter />
+      </div>
+    </GameProvider>
   );
 }
 
