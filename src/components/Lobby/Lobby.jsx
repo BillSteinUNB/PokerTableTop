@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameContextMultiplayer';
 import './Lobby.css';
 
 /**
@@ -12,8 +12,7 @@ const Lobby = () => {
   useEffect(() => {
     // If no lobby exists and we're the host, create one
     if (!lobbyData.code) {
-      const code = createLobby();
-      console.log('Created lobby:', code);
+      createLobby();
     }
   }, []);
 
@@ -30,8 +29,8 @@ const Lobby = () => {
     navigateTo('mainMenu');
   };
 
-  // Mock players for demonstration (in real app, this would come from server)
-  const mockPlayers = lobbyData.code ? [playerData] : [];
+  // Get players from lobby data (comes from server in multiplayer mode)
+  const players = lobbyData.players || [];
 
   return (
     <div className="lobby">
@@ -53,18 +52,18 @@ const Lobby = () => {
           {/* Players List */}
           <div className="players-section">
             <div className="section-header">
-              <span className="section-title">PLAYERS ({mockPlayers.length}/8)</span>
+              <span className="section-title">PLAYERS ({players.length}/{lobbyData.settings?.maxPlayers || 8})</span>
               {lobbyData.isHost && (
                 <span className="host-badge">HOST</span>
               )}
             </div>
 
             <div className="players-list">
-              {mockPlayers.map((player, index) => (
-                <div key={index} className="player-card">
+              {players.map((player, index) => (
+                <div key={player.id || index} className="player-card">
                   <div className="player-avatar">
                     <span className="player-emoji">
-                      {['😎', '🤖', '🤠', '🏴‍☠️', '🥷', '🧙', '⚔️', '👽'][player.avatar]}
+                      {['😎', '🤖', '🤠', '🏴‍☠️', '🥷', '🧙', '⚔️', '👽'][player.avatar || 0]}
                     </span>
                   </div>
                   <div className="player-info">
@@ -74,14 +73,14 @@ const Lobby = () => {
                       <span className="detail-item">Chip: {player.chipType}</span>
                     </div>
                   </div>
-                  {index === 0 && lobbyData.isHost && (
+                  {player.id === lobbyData.players?.[0]?.id && (
                     <div className="player-badge">👑</div>
                   )}
                 </div>
               ))}
 
               {/* Empty slots */}
-              {Array.from({ length: 8 - mockPlayers.length }).map((_, index) => (
+              {Array.from({ length: (lobbyData.settings?.maxPlayers || 8) - players.length }).map((_, index) => (
                 <div key={`empty-${index}`} className="player-card empty">
                   <div className="player-avatar empty-avatar">?</div>
                   <div className="player-info">
@@ -133,7 +132,7 @@ const Lobby = () => {
             <button
               className="lobby-btn btn-start"
               onClick={handleStartGame}
-              disabled={mockPlayers.length < 2}
+              disabled={players.length < 2}
             >
               START GAME →
             </button>

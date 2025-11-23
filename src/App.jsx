@@ -1,5 +1,5 @@
 import React from 'react';
-import { GameProvider, useGame } from './context/GameContext';
+import { GameProvider, useGame } from './context/GameContextMultiplayer';
 import MainMenu from './components/MainMenu/MainMenu';
 import JoinGame from './components/JoinGame/JoinGame';
 import CreateLobby from './components/CreateLobby/CreateLobby';
@@ -31,7 +31,6 @@ function GameRouter() {
       return (
         <div className="game-view">
           <TopDownTable />
-          <Controls />
         </div>
       );
     default:

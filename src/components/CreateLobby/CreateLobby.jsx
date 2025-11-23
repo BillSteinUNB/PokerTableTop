@@ -1,5 +1,6 @@
 import React from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameContextMultiplayer';
+import { initializeGame, startNewHand } from '../../utils/gameEngine';
 import './CreateLobby.css';
 
 /**
@@ -7,7 +8,7 @@ import './CreateLobby.css';
  * Screen for creating a new game lobby (goes to character select first)
  */
 const CreateLobby = () => {
-  const { navigateTo } = useGame();
+  const { navigateTo, updatePlayerData, createLobby, lobbyData, setGameState } = useGame();
 
   const handleContinue = () => {
     // Go to character selection first, then create lobby
@@ -16,6 +17,43 @@ const CreateLobby = () => {
 
   const handleBack = () => {
     navigateTo('mainMenu');
+  };
+
+  const handleDemo = () => {
+    // Create demo player
+    const demoPlayer = {
+      name: 'You',
+      avatar: 0,
+      cardColor: 'classic',
+      chipType: 'black'
+    };
+
+    updatePlayerData(demoPlayer);
+
+    // Create 3 fake players for demo
+    const allPlayers = [
+      demoPlayer,
+      { name: 'Alice', avatar: 1, cardColor: 'red', chipType: 'red' },
+      { name: 'Bob', avatar: 2, cardColor: 'blue', chipType: 'blue' },
+      { name: 'Charlie', avatar: 3, cardColor: 'green', chipType: 'green' }
+    ];
+
+    // Use game engine to initialize and start game
+    const gameSettings = {
+      smallBlind: 5,
+      bigBlind: 10,
+      startingChips: 1000,
+      minPlayers: 2,
+      maxPlayers: 8
+    };
+
+    const initialGameState = initializeGame(allPlayers, gameSettings);
+    const gameWithCards = startNewHand(initialGameState);
+
+    setGameState(gameWithCards);
+
+    // Go directly to game view
+    navigateTo('game');
   };
 
   return (
@@ -63,6 +101,17 @@ const CreateLobby = () => {
           <button className="create-btn btn-continue" onClick={handleContinue}>
             CONTINUE →
           </button>
+        </div>
+
+        {/* Demo Mode Button */}
+        <div className="demo-section">
+          <div className="demo-divider">
+            <span>OR</span>
+          </div>
+          <button className="demo-btn" onClick={handleDemo}>
+            🎮 DEMO MODE
+          </button>
+          <p className="demo-hint">Test the table with fake players</p>
         </div>
 
         <div className="create-hint">

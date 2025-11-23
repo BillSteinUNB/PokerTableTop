@@ -1,37 +1,33 @@
+import { getCharacterImagePath, getCharacterName } from '../utils/spriteConfig';
+
 // Character avatars data
-// These reference sprite positions for 8 different pixel art characters
+// Each character has a face image for selection
+// Using naming convention: characterOne.png, characterTwo.png, etc.
 export const CHARACTERS = [
-  { id: 0, name: 'Cool Cat', spriteIndex: 0 },
-  { id: 1, name: 'Robot', spriteIndex: 1 },
-  { id: 2, name: 'Cowboy', spriteIndex: 2 },
-  { id: 3, name: 'Pirate', spriteIndex: 3 },
-  { id: 4, name: 'Ninja', spriteIndex: 4 },
-  { id: 5, name: 'Wizard', spriteIndex: 5 },
-  { id: 6, name: 'Knight', spriteIndex: 6 },
-  { id: 7, name: 'Alien', spriteIndex: 7 }
+  { id: 0, name: getCharacterName(0), imagePath: getCharacterImagePath(0), emoji: '😎' },
+  { id: 1, name: getCharacterName(1), imagePath: getCharacterImagePath(1), emoji: '🤖' },
+  { id: 2, name: getCharacterName(2), imagePath: getCharacterImagePath(2), emoji: '🤠' },
+  { id: 3, name: getCharacterName(3), imagePath: getCharacterImagePath(3), emoji: '🏴‍☠️' },
+  { id: 4, name: getCharacterName(4), imagePath: getCharacterImagePath(4), emoji: '🥷' },
+  { id: 5, name: getCharacterName(5), imagePath: getCharacterImagePath(5), emoji: '🧙' },
+  { id: 6, name: getCharacterName(6), imagePath: getCharacterImagePath(6), emoji: '⚔️' },
+  { id: 7, name: getCharacterName(7), imagePath: getCharacterImagePath(7), emoji: '👽' }
 ];
 
-// Card color options
+// Card color options - using card back styles
 export const CARD_COLORS = [
-  { id: 'classic', name: 'Classic', color: '#FFFFFF' },
-  { id: 'red', name: 'Red', color: '#FF4444' },
-  { id: 'blue', name: 'Blue', color: '#4444FF' },
-  { id: 'green', name: 'Green', color: '#44FF44' },
-  { id: 'purple', name: 'Purple', color: '#AA44FF' }
-];
-
-// Chip type options
-export const CHIP_TYPES = [
   { id: 'classic', name: 'Classic' },
-  { id: 'casino', name: 'Casino' },
-  { id: 'neon', name: 'Neon' }
+  { id: 'red', name: 'Red' },
+  { id: 'blue', name: 'Blue' },
+  { id: 'green', name: 'Green' },
+  { id: 'purple', name: 'Purple' }
 ];
 
-// Avatar sprite configuration
-export const AVATAR_SPRITE_CONFIG = {
-  spriteSheetPath: '/assets/sprites/avatars.png',
-  avatarWidth: 48,
-  avatarHeight: 48,
-  columns: 8,
-  rows: 1
-};
+// Chip type options - corresponding to chip color files
+export const CHIP_TYPES = [
+  { id: 'black', name: 'Black', color: 'black' },
+  { id: 'red', name: 'Red', color: 'red' },
+  { id: 'blue', name: 'Blue', color: 'blue' },
+  { id: 'green', name: 'Green', color: 'green' },
+  { id: 'white', name: 'White', color: 'white' }
+];

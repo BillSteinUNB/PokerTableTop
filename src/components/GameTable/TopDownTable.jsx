@@ -1,7 +1,8 @@
 import React from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameContextMultiplayer';
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar';
 import Card from '../Card/Card';
+import Controls from '../Controls/Controls';
 import './TopDownTable.css';
 
 /**
@@ -9,7 +10,7 @@ import './TopDownTable.css';
  * Bird's eye view of poker table with players positioned around it
  */
 const TopDownTable = () => {
-  const { gameState, playerData } = useGame();
+  const { gameState, playerData, ROUND_STATES, handleNextHand } = useGame();
 
   // Position players around the table (8 positions max)
   const getPlayerPosition = (index, totalPlayers) => {
@@ -30,6 +31,23 @@ const TopDownTable = () => {
   const players = gameState.players || [];
   const communityCards = gameState.communityCards || [];
   const pot = gameState.pot || 0;
+  const roundState = gameState.roundState;
+  const dealerPosition = gameState.dealerPosition;
+  const lastAction = gameState.lastAction;
+
+  // Format round state for display
+  const getRoundStateDisplay = () => {
+    const stateMap = {
+      [ROUND_STATES.WAITING]: 'Waiting for game',
+      [ROUND_STATES.PRE_FLOP]: 'Pre-Flop',
+      [ROUND_STATES.FLOP]: 'Flop',
+      [ROUND_STATES.TURN]: 'Turn',
+      [ROUND_STATES.RIVER]: 'River',
+      [ROUND_STATES.SHOWDOWN]: 'Showdown',
+      [ROUND_STATES.HAND_COMPLETE]: 'Hand Complete'
+    };
+    return stateMap[roundState] || roundState;
+  };
 
   return (
     <div className="top-down-table">
@@ -73,14 +91,22 @@ const TopDownTable = () => {
             {players.map((player, index) => {
               const position = getPlayerPosition(index, players.length);
               const isCurrentPlayer = player.name === playerData.name;
+              const isDealer = index === dealerPosition;
+              const isFolded = player.folded;
+              const isAllIn = player.allIn;
 
               return (
                 <div
                   key={index}
                   className={`player-seat ${position.class} ${isCurrentPlayer ? 'current-player' : ''} ${
                     gameState.currentPlayerIndex === index ? 'active-turn' : ''
-                  }`}
+                  } ${isFolded ? 'folded' : ''} ${isAllIn ? 'all-in' : ''}`}
                 >
+                  {/* Dealer button */}
+                  {isDealer && (
+                    <div className="dealer-button" title="Dealer">D</div>
+                  )}
+
                   {/* Player info */}
                   <div className="seat-player-info">
                     <PlayerAvatar
@@ -92,31 +118,35 @@ const TopDownTable = () => {
                     <div className="player-chips-display">
                       💰 ${player.chips}
                     </div>
+                    {isAllIn && <div className="all-in-badge">ALL IN</div>}
+                    {isFolded && <div className="folded-badge">FOLDED</div>}
                   </div>
 
                   {/* Player's cards */}
-                  <div className="seat-cards">
-                    {isCurrentPlayer && player.hand ? (
-                      // Show current player's cards face up
-                      player.hand.map((card, cardIndex) => (
-                        <Card
-                          key={cardIndex}
-                          suit={card.suit}
-                          rank={card.rank}
-                          scale={0.7}
-                        />
-                      ))
-                    ) : (
-                      // Show other players' cards face down
-                      <>
-                        <Card faceDown scale={0.7} />
-                        <Card faceDown scale={0.7} />
-                      </>
-                    )}
-                  </div>
+                  {!isFolded && (
+                    <div className="seat-cards">
+                      {isCurrentPlayer && player.hand && player.hand.length > 0 ? (
+                        // Show current player's cards face up
+                        player.hand.map((card, cardIndex) => (
+                          <Card
+                            key={cardIndex}
+                            suit={card.suit}
+                            rank={card.rank}
+                            scale={0.3}
+                          />
+                        ))
+                      ) : player.hand && player.hand.length > 0 ? (
+                        // Show other players' cards face down with their card back color
+                        <>
+                          <Card faceDown cardBackStyle={player.cardColor || 'classic'} scale={0.3} />
+                          <Card faceDown cardBackStyle={player.cardColor || 'classic'} scale={0.3} />
+                        </>
+                      ) : null}
+                    </div>
+                  )}
 
                   {/* Current bet */}
-                  {player.currentBet > 0 && (
+                  {player.currentBet > 0 && !isFolded && (
                     <div className="player-bet">
                       <div className="bet-chip">💰</div>
                       <div className="bet-value">${player.currentBet}</div>
@@ -124,7 +154,7 @@ const TopDownTable = () => {
                   )}
 
                   {/* Active turn indicator */}
-                  {gameState.currentPlayerIndex === index && (
+                  {gameState.currentPlayerIndex === index && !isFolded && !isAllIn && (
                     <div className="turn-arrow">▼</div>
                   )}
                 </div>
@@ -135,12 +165,44 @@ const TopDownTable = () => {
 
         {/* Game status message */}
         <div className="game-status-bar">
-          <div className="status-text">
-            {gameState.currentPlayerIndex !== undefined && players[gameState.currentPlayerIndex]
-              ? `${players[gameState.currentPlayerIndex].name}'s turn`
-              : 'Waiting for game to start...'}
+          <div className="status-info">
+            <div className="status-item">
+              <span className="status-label">Round:</span>
+              <span className="status-value">{getRoundStateDisplay()}</span>
+            </div>
+            <div className="status-item">
+              <span className="status-label">Pot:</span>
+              <span className="status-value">${pot}</span>
+            </div>
+            {lastAction && lastAction.type === 'showdown' && (
+              <div className="status-item showdown-result">
+                <span className="status-label">Winner:</span>
+                <span className="status-value">
+                  {lastAction.winners.map(w => w.name).join(', ')} - {lastAction.winningHand?.name}
+                </span>
+                <button className="next-hand-btn" onClick={handleNextHand}>
+                  Next Hand
+                </button>
+              </div>
+            )}
+            {lastAction && lastAction.type === 'error' && (
+              <div className="status-item error-message">
+                {lastAction.message}
+              </div>
+            )}
+            {roundState !== ROUND_STATES.SHOWDOWN && players[gameState.currentPlayerIndex] && (
+              <div className="status-item">
+                <span className="status-label">Current Turn:</span>
+                <span className="status-value">{players[gameState.currentPlayerIndex].name}</span>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Game controls */}
+        {roundState !== ROUND_STATES.SHOWDOWN && roundState !== ROUND_STATES.WAITING && (
+          <Controls />
+        )}
       </div>
     </div>
   );

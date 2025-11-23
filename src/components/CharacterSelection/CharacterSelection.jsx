@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameContextMultiplayer';
 import { CHARACTERS, CARD_COLORS, CHIP_TYPES } from '../../data/gameData';
+import Card from '../Card/Card';
+import Chip from '../Chip/Chip';
 import './CharacterSelection.css';
 
 /**
@@ -12,7 +14,7 @@ const CharacterSelection = () => {
   const [name, setName] = useState(playerData.name || '');
   const [selectedAvatar, setSelectedAvatar] = useState(playerData.avatar || 0);
   const [selectedCardColor, setSelectedCardColor] = useState(playerData.cardColor || 'classic');
-  const [selectedChipType, setSelectedChipType] = useState(playerData.chipType || 'classic');
+  const [selectedChipType, setSelectedChipType] = useState(playerData.chipType || 'black');
   const [nameError, setNameError] = useState('');
 
   const handleNameChange = (e) => {
@@ -21,7 +23,7 @@ const CharacterSelection = () => {
     setNameError('');
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (name.trim().length < 2) {
       setNameError('Name must be at least 2 characters');
       return;
@@ -35,8 +37,14 @@ const CharacterSelection = () => {
       chipType: selectedChipType
     });
 
-    // Navigate to lobby
-    navigateTo('lobby');
+    // Create multiplayer lobby
+    try {
+      await createLobby(true); // true = multiplayer mode
+      // Navigate to lobby
+      navigateTo('lobby');
+    } catch (error) {
+      setNameError(`Failed to create lobby: ${error.message}`);
+    }
   };
 
   const handleBack = () => {
@@ -79,9 +87,18 @@ const CharacterSelection = () => {
                   onClick={() => setSelectedAvatar(char.id)}
                 >
                   <div className="avatar-placeholder">
-                    {/* Sprite would go here */}
-                    <span className="avatar-emoji">
-                      {['😎', '🤖', '🤠', '🏴‍☠️', '🥷', '🧙', '⚔️', '👽'][char.id]}
+                    {/* Character face image with emoji fallback */}
+                    <img
+                      src={char.imagePath}
+                      alt={char.name}
+                      className="avatar-image"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
+                    />
+                    <span className="avatar-emoji" style={{ display: 'none' }}>
+                      {char.emoji}
                     </span>
                   </div>
                   <div className="avatar-name">{char.name}</div>
@@ -90,9 +107,9 @@ const CharacterSelection = () => {
             </div>
           </div>
 
-          {/* Card Color Selection */}
+          {/* Card Color Selection - Using Card Backs */}
           <div className="selection-section">
-            <label className="section-label">CARD COLOR</label>
+            <label className="section-label">CARD BACK</label>
             <div className="color-grid">
               {CARD_COLORS.map((color) => (
                 <div
@@ -100,10 +117,9 @@ const CharacterSelection = () => {
                   className={`color-option ${selectedCardColor === color.id ? 'selected' : ''}`}
                   onClick={() => setSelectedCardColor(color.id)}
                 >
-                  <div
-                    className="color-swatch"
-                    style={{ background: color.color }}
-                  ></div>
+                  <div className="card-back-preview">
+                    <Card faceDown cardBackStyle={color.id} scale={0.3} />
+                  </div>
                   <div className="color-name">{color.name}</div>
                 </div>
               ))}
@@ -112,7 +128,7 @@ const CharacterSelection = () => {
 
           {/* Chip Type Selection */}
           <div className="selection-section">
-            <label className="section-label">CHIP STYLE</label>
+            <label className="section-label">CHIP COLOR</label>
             <div className="chip-grid">
               {CHIP_TYPES.map((chip) => (
                 <div
@@ -121,7 +137,7 @@ const CharacterSelection = () => {
                   onClick={() => setSelectedChipType(chip.id)}
                 >
                   <div className="chip-preview">
-                    <div className="chip-icon">●</div>
+                    <Chip color={chip.color} arrangement="singleChip" scale={0.5} />
                   </div>
                   <div className="chip-name">{chip.name}</div>
                 </div>
