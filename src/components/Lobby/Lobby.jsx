@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameContextMultiplayer';
 import './Lobby.css';
 
 /**
