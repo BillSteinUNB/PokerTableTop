@@ -115,7 +115,9 @@ PokerTableTop/
 │   │   ├── CreateLobby/             # Lobby creation + demo mode button
 │   │   ├── JoinGame/                # Join by code
 │   │   ├── Lobby/                   # Pre-game lobby (shows players)
-│   │   ├── TopDownTable/            # ✅ Main game table view
+│   │   ├── GameTable/               # ✅ Main game table view
+│   │   │   ├── TopDownTable.jsx     # Top-down poker table component
+│   │   │   └── TopDownTable.css     # Table styling
 │   │   ├── Controls/                # Action buttons (fold, check, call, raise)
 │   │   ├── Card/                    # Card component
 │   │   ├── Chip/                    # Chip component
