@@ -153,7 +153,7 @@ PokerTableTop/
    - Cards: `aceSpade.png`, `twoHeart.png`, etc. (52 total)
    - Card backs: `classicBack.png`, `redBack.png`, etc. (5 total)
    - Chips: `blackChipOne.png`, `redChipThree.png`, etc. (40 total)
-   - Characters: `characterOne.png`, `characterTwo.png`, etc. (8 total)
+   - Characters: `Character1.png`, `Character2.png`, etc. (8 total)
 
 3. **Refresh** - Sprites load automatically!
 

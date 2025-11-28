@@ -78,9 +78,9 @@ export const CHIP_SPRITE_CONFIG = {
 };
 
 // Character image configuration
-// Individual character images named like: characterOne.png, characterTwo.png
+// Individual character images named like: Character1.png, Character2.png
 export const CHARACTER_CONFIG = {
-  basePath: '/assets/sprites/characters/',
+  basePath: '/assets/sprites/',
   count: 8,
 
   // Character names (for display)
@@ -173,11 +173,11 @@ export function getCharacterImagePath(characterId) {
     characterId = 0;
   }
 
-  // Convert number to word (0 -> One, 1 -> Two, etc.)
-  const numbers = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'];
+  // Convert 0-based ID to 1-based number for filename (0 -> 1, 1 -> 2, etc.)
+  const characterNumber = characterId + 1;
 
-  // Format: characterOne.png, characterTwo.png
-  return `${config.basePath}character${numbers[characterId]}.png`;
+  // Format: Character1.png, Character2.png, etc.
+  return `${config.basePath}Character${characterNumber}.png`;
 }
 
 /**

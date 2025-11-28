@@ -15,14 +15,14 @@ const TopDownTable = () => {
   // Position players around the table (8 positions max)
   const getPlayerPosition = (index, totalPlayers) => {
     const positions = [
-      { class: 'position-bottom', rotation: 0 },      // Position 0 (current player)
-      { class: 'position-left', rotation: 90 },       // Position 1
-      { class: 'position-top-left', rotation: 135 },  // Position 2
-      { class: 'position-top', rotation: 180 },       // Position 3
-      { class: 'position-top-right', rotation: 225 }, // Position 4
-      { class: 'position-right', rotation: 270 },     // Position 5
-      { class: 'position-bottom-right', rotation: 315 }, // Position 6
-      { class: 'position-bottom-left', rotation: 45 } // Position 7
+      { class: 'position-bottom' },      // Position 0 (current player)
+      { class: 'position-left' },        // Position 1
+      { class: 'position-top-left' },    // Position 2
+      { class: 'position-top' },         // Position 3
+      { class: 'position-top-right' },   // Position 4
+      { class: 'position-right' },       // Position 5
+      { class: 'position-bottom-right' }, // Position 6
+      { class: 'position-bottom-left' }  // Position 7
     ];
 
     return positions[index] || positions[0];
@@ -52,8 +52,9 @@ const TopDownTable = () => {
   return (
     <div className="top-down-table">
       <div className="table-view">
-        {/* Poker table surface */}
-        <div className="poker-table-top">
+        <div className="table-container">
+          {/* Poker table surface */}
+          <div className="poker-table-top">
           {/* Table felt */}
           <div className="table-felt-top">
             {/* Community cards in center */}
@@ -102,46 +103,39 @@ const TopDownTable = () => {
                     gameState.currentPlayerIndex === index ? 'active-turn' : ''
                   } ${isFolded ? 'folded' : ''} ${isAllIn ? 'all-in' : ''}`}
                 >
+                  {/* Money display above head */}
+                  <div className="player-money-display">
+                    💰 ${player.chips}
+                  </div>
+
                   {/* Dealer button */}
                   {isDealer && (
                     <div className="dealer-button" title="Dealer">D</div>
                   )}
 
-                  {/* Player info */}
-                  <div className="seat-player-info">
+                  {/* Player character - full size */}
+                  <div className="seat-player-character">
                     <PlayerAvatar
                       avatarId={player.avatar}
                       name={player.name}
-                      scale={1}
+                      scale={2}
                       showName={true}
                     />
-                    <div className="player-chips-display">
-                      💰 ${player.chips}
-                    </div>
                     {isAllIn && <div className="all-in-badge">ALL IN</div>}
                     {isFolded && <div className="folded-badge">FOLDED</div>}
                   </div>
 
-                  {/* Player's cards */}
-                  {!isFolded && (
+                  {/* Player's cards - only show for current player */}
+                  {!isFolded && isCurrentPlayer && player.hand && player.hand.length > 0 && (
                     <div className="seat-cards">
-                      {isCurrentPlayer && player.hand && player.hand.length > 0 ? (
-                        // Show current player's cards face up
-                        player.hand.map((card, cardIndex) => (
-                          <Card
-                            key={cardIndex}
-                            suit={card.suit}
-                            rank={card.rank}
-                            scale={0.3}
-                          />
-                        ))
-                      ) : player.hand && player.hand.length > 0 ? (
-                        // Show other players' cards face down with their card back color
-                        <>
-                          <Card faceDown cardBackStyle={player.cardColor || 'classic'} scale={0.3} />
-                          <Card faceDown cardBackStyle={player.cardColor || 'classic'} scale={0.3} />
-                        </>
-                      ) : null}
+                      {player.hand.map((card, cardIndex) => (
+                        <Card
+                          key={cardIndex}
+                          suit={card.suit}
+                          rank={card.rank}
+                          scale={0.4}
+                        />
+                      ))}
                     </div>
                   )}
 
@@ -163,8 +157,8 @@ const TopDownTable = () => {
           </div>
         </div>
 
-        {/* Game status message */}
-        <div className="game-status-bar">
+          {/* Game status message */}
+          <div className="game-status-bar">
           <div className="status-info">
             <div className="status-item">
               <span className="status-label">Round:</span>
@@ -199,10 +193,11 @@ const TopDownTable = () => {
           </div>
         </div>
 
-        {/* Game controls */}
-        {roundState !== ROUND_STATES.SHOWDOWN && roundState !== ROUND_STATES.WAITING && (
-          <Controls />
-        )}
+          {/* Game controls */}
+          {roundState !== ROUND_STATES.SHOWDOWN && roundState !== ROUND_STATES.WAITING && (
+            <Controls />
+          )}
+        </div>
       </div>
     </div>
   );
