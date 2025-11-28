@@ -47,6 +47,10 @@ export function GameProvider({ children }) {
     roundState: 'waiting'
   });
 
+  // Connection state
+  const [connectionError, setConnectionError] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+
   // Setup Socket.io listeners
   useEffect(() => {
     if (!isMultiplayer) return;
@@ -85,13 +89,17 @@ export function GameProvider({ children }) {
   };
 
   // MULTIPLAYER: Create lobby
-  const createLobbyMultiplayer = async () => {
+  const createLobbyMultiplayer = async (playerDataToUse = playerData) => {
     try {
+      setIsConnecting(true);
+      setConnectionError(null);
+
       const playerWithId = {
-        ...playerData,
+        ...playerDataToUse,
         id: socketService.getSocketId() || Date.now().toString()
       };
 
+      console.log('[GameContext] Creating lobby with player data:', playerWithId);
       const code = await socketService.createLobby(playerWithId);
 
       setLobbyData(prev => ({
@@ -102,21 +110,28 @@ export function GameProvider({ children }) {
       }));
 
       setIsMultiplayer(true);
+      setIsConnecting(false);
       return code;
     } catch (error) {
-      console.error('Failed to create lobby:', error);
+      console.error('[GameContext] Failed to create lobby:', error);
+      setConnectionError(error.message);
+      setIsConnecting(false);
       throw error;
     }
   };
 
   // MULTIPLAYER: Join lobby
-  const joinLobbyMultiplayer = async (code) => {
+  const joinLobbyMultiplayer = async (code, playerDataToUse = playerData) => {
     try {
+      setIsConnecting(true);
+      setConnectionError(null);
+
       const playerWithId = {
-        ...playerData,
+        ...playerDataToUse,
         id: socketService.getSocketId() || Date.now().toString()
       };
 
+      console.log('[GameContext] Joining lobby:', code, 'with player:', playerWithId);
       await socketService.joinLobby(code, playerWithId);
 
       setLobbyData(prev => ({
@@ -126,19 +141,22 @@ export function GameProvider({ children }) {
       }));
 
       setIsMultiplayer(true);
+      setIsConnecting(false);
     } catch (error) {
-      console.error('Failed to join lobby:', error);
+      console.error('[GameContext] Failed to join lobby:', error);
+      setConnectionError(error.message);
+      setIsConnecting(false);
       throw error;
     }
   };
 
   // LOCAL: Create lobby (for demo mode)
-  const createLobbyLocal = () => {
+  const createLobbyLocal = (playerDataToUse = playerData) => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     setLobbyData({
       code,
       isHost: true,
-      players: [playerData],
+      players: [playerDataToUse],
       settings: lobbyData.settings
     });
     setIsMultiplayer(false);
@@ -146,25 +164,30 @@ export function GameProvider({ children }) {
   };
 
   // Unified create lobby (chooses multiplayer or local)
-  const createLobby = (useMultiplayer = true) => {
+  const createLobby = (useMultiplayer = true, playerDataOverride = null) => {
+    // Use override if provided, otherwise use context playerData
+    const dataToUse = playerDataOverride || playerData;
+
     if (useMultiplayer) {
-      return createLobbyMultiplayer();
+      return createLobbyMultiplayer(dataToUse);
     } else {
-      return createLobbyLocal();
+      return createLobbyLocal(dataToUse);
     }
   };
 
   // Unified join lobby (chooses multiplayer or local)
-  const joinLobby = (code, useMultiplayer = true) => {
+  const joinLobby = (code, useMultiplayer = true, playerDataOverride = null) => {
+    const dataToUse = playerDataOverride || playerData;
+
     if (useMultiplayer) {
-      return joinLobbyMultiplayer(code);
+      return joinLobbyMultiplayer(code, dataToUse);
     } else {
       // Local join not implemented (not needed for demo)
       setLobbyData(prev => ({
         ...prev,
         code,
         isHost: false,
-        players: [...prev.players, playerData]
+        players: [...prev.players, dataToUse]
       }));
       setIsMultiplayer(false);
     }

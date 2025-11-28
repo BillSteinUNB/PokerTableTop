@@ -15,9 +15,11 @@ app.use(cors());
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
+    origin: ["http://localhost:3000", "http://localhost:5173"],
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
 });
 
 // Store active lobbies and game engines
@@ -68,40 +70,50 @@ io.on('connection', (socket) => {
    * Create a new lobby
    */
   socket.on('createLobby', (playerData, callback) => {
-    const lobbyCode = generateLobbyCode();
+    try {
+      if (!playerData || !playerData.name) {
+        callback({ success: false, error: 'Invalid player data' });
+        return;
+      }
 
-    const lobby = {
-      code: lobbyCode,
-      hostId: socket.id,
-      players: [{
-        ...playerData,
-        id: socket.id,
-        socketId: socket.id
-      }],
-      settings: {
-        smallBlind: 5,
-        bigBlind: 10,
-        startingChips: 1000,
-        minPlayers: 2,
-        maxPlayers: 8
-      },
-      gameStarted: false
-    };
+      const lobbyCode = generateLobbyCode();
 
-    lobbies.set(lobbyCode, lobby);
-    socket.join(lobbyCode);
-    socket.lobbyCode = lobbyCode;
+      const lobby = {
+        code: lobbyCode,
+        hostId: socket.id,
+        players: [{
+          ...playerData,
+          id: socket.id,
+          socketId: socket.id
+        }],
+        settings: {
+          smallBlind: 5,
+          bigBlind: 10,
+          startingChips: 1000,
+          minPlayers: 2,
+          maxPlayers: 8
+        },
+        gameStarted: false
+      };
 
-    console.log(`[${new Date().toLocaleTimeString()}] Lobby created: ${lobbyCode} by ${socket.id}`);
+      lobbies.set(lobbyCode, lobby);
+      socket.join(lobbyCode);
+      socket.lobbyCode = lobbyCode;
 
-    callback({ success: true, lobbyCode });
-    broadcastLobbyState(lobbyCode);
+      console.log(`[${new Date().toLocaleTimeString()}] Lobby created: ${lobbyCode} by ${playerData.name} (${socket.id})`);
+
+      callback({ success: true, lobbyCode });
+      broadcastLobbyState(lobbyCode);
+    } catch (error) {
+      console.error(`[${new Date().toLocaleTimeString()}] Error creating lobby:`, error);
+      callback({ success: false, error: 'Failed to create lobby' });
+    }
   });
 
   /**
-   * Join an existing lobby
+   * Check if a lobby exists
    */
-  socket.on('joinLobby', ({ lobbyCode, playerData }, callback) => {
+  socket.on('checkLobby', (lobbyCode, callback) => {
     const lobby = lobbies.get(lobbyCode);
 
     if (!lobby) {
@@ -119,25 +131,59 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Check if player name is already taken
-    if (lobby.players.some(p => p.name === playerData.name)) {
-      callback({ success: false, error: 'Name already taken' });
-      return;
+    callback({ success: true });
+  });
+
+  /**
+   * Join an existing lobby
+   */
+  socket.on('joinLobby', ({ lobbyCode, playerData }, callback) => {
+    try {
+      if (!lobbyCode || !playerData || !playerData.name) {
+        callback({ success: false, error: 'Invalid lobby code or player data' });
+        return;
+      }
+
+      const lobby = lobbies.get(lobbyCode);
+
+      if (!lobby) {
+        callback({ success: false, error: 'Lobby not found' });
+        return;
+      }
+
+      if (lobby.gameStarted) {
+        callback({ success: false, error: 'Game already in progress' });
+        return;
+      }
+
+      if (lobby.players.length >= lobby.settings.maxPlayers) {
+        callback({ success: false, error: 'Lobby is full' });
+        return;
+      }
+
+      // Check if player name is already taken
+      if (lobby.players.some(p => p.name === playerData.name)) {
+        callback({ success: false, error: 'Name already taken' });
+        return;
+      }
+
+      lobby.players.push({
+        ...playerData,
+        id: socket.id,
+        socketId: socket.id
+      });
+
+      socket.join(lobbyCode);
+      socket.lobbyCode = lobbyCode;
+
+      console.log(`[${new Date().toLocaleTimeString()}] ${playerData.name} (${socket.id}) joined lobby: ${lobbyCode}`);
+
+      callback({ success: true, lobbyCode });
+      broadcastLobbyState(lobbyCode);
+    } catch (error) {
+      console.error(`[${new Date().toLocaleTimeString()}] Error joining lobby:`, error);
+      callback({ success: false, error: 'Failed to join lobby' });
     }
-
-    lobby.players.push({
-      ...playerData,
-      id: socket.id,
-      socketId: socket.id
-    });
-
-    socket.join(lobbyCode);
-    socket.lobbyCode = lobbyCode;
-
-    console.log(`[${new Date().toLocaleTimeString()}] ${playerData.name} joined lobby: ${lobbyCode}`);
-
-    callback({ success: true, lobbyCode });
-    broadcastLobbyState(lobbyCode);
   });
 
   /**
@@ -335,8 +381,9 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 httpServer.listen(PORT, () => {
   console.log(`\n🎮 Poker Server Running on port ${PORT}`);
-  console.log(`📡 WebSocket server ready for connections\n`);
+  console.log(`📡 WebSocket server ready for connections`);
+  console.log(`🔗 Connect clients to: http://localhost:${PORT}\n`);
 });

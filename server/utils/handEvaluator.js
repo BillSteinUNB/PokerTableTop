@@ -3,7 +3,7 @@
  * Evaluates the best 5-card hand from 7 cards (2 hole + 5 community)
  */
 
-import { getRankValue } from './deck';
+import { getRankValue } from './deck.js';
 
 // Hand rankings (higher is better)
 export const HAND_RANKINGS = {

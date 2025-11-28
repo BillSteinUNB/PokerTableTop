@@ -5,7 +5,8 @@
 
 import { io } from 'socket.io-client';
 
-const SERVER_URL = 'http://localhost:3001';
+// Use environment variable or default to port 3002
+const SERVER_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3002';
 
 class SocketService {
   constructor() {
@@ -13,6 +14,7 @@ class SocketService {
     this.connected = false;
     this.lobbyCode = null;
     this.playerId = null;
+    this.connectionTimeout = null;
   }
 
   /**
@@ -20,31 +22,64 @@ class SocketService {
    */
   connect() {
     if (this.socket && this.connected) {
+      console.log('[Socket] Already connected');
       return Promise.resolve();
     }
 
+    // Clear any existing socket
+    if (this.socket && !this.connected) {
+      console.log('[Socket] Cleaning up previous socket');
+      this.socket.removeAllListeners();
+      this.socket.close();
+      this.socket = null;
+    }
+
     return new Promise((resolve, reject) => {
+      console.log(`[Socket] Attempting to connect to ${SERVER_URL}...`);
+
+      // Set connection timeout
+      this.connectionTimeout = setTimeout(() => {
+        if (!this.connected) {
+          console.error('[Socket] Connection timeout');
+          reject(new Error('Connection timeout - is the server running?'));
+        }
+      }, 10000); // 10 second timeout
+
       this.socket = io(SERVER_URL, {
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 5
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 5,
+        timeout: 10000
       });
 
       this.socket.on('connect', () => {
-        console.log('[Socket] Connected to server');
+        console.log(`[Socket] ✅ Connected to server (ID: ${this.socket.id})`);
         this.connected = true;
+        if (this.connectionTimeout) {
+          clearTimeout(this.connectionTimeout);
+          this.connectionTimeout = null;
+        }
         resolve();
       });
 
-      this.socket.on('disconnect', () => {
-        console.log('[Socket] Disconnected from server');
+      this.socket.on('disconnect', (reason) => {
+        console.log(`[Socket] Disconnected from server. Reason: ${reason}`);
         this.connected = false;
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('[Socket] Connection error:', error);
-        reject(error);
+        console.error('[Socket] Connection error:', error.message);
+        if (this.connectionTimeout) {
+          clearTimeout(this.connectionTimeout);
+          this.connectionTimeout = null;
+        }
+        reject(new Error(`Failed to connect to server at ${SERVER_URL}. Is the server running?`));
+      });
+
+      this.socket.on('error', (error) => {
+        console.error('[Socket] Socket error:', error);
       });
     });
   }
@@ -61,18 +96,43 @@ class SocketService {
   }
 
   /**
+   * Check if a lobby exists
+   */
+  async checkLobby(lobbyCode) {
+    if (!this.isConnected()) {
+      throw new Error('Not connected to server');
+    }
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('checkLobby', lobbyCode, (response) => {
+        if (response.success) {
+          resolve();
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
+  /**
    * Create a new lobby
    */
   async createLobby(playerData) {
     await this.connect();
+
+    if (!this.isConnected()) {
+      throw new Error('Not connected to server');
+    }
 
     return new Promise((resolve, reject) => {
       this.socket.emit('createLobby', playerData, (response) => {
         if (response.success) {
           this.lobbyCode = response.lobbyCode;
           this.playerId = playerData.id || this.socket.id;
+          console.log(`[Socket] ✅ Lobby created: ${response.lobbyCode}`);
           resolve(response.lobbyCode);
         } else {
+          console.error('[Socket] Failed to create lobby:', response.error);
           reject(new Error(response.error));
         }
       });
@@ -85,13 +145,19 @@ class SocketService {
   async joinLobby(lobbyCode, playerData) {
     await this.connect();
 
+    if (!this.isConnected()) {
+      throw new Error('Not connected to server');
+    }
+
     return new Promise((resolve, reject) => {
       this.socket.emit('joinLobby', { lobbyCode, playerData }, (response) => {
         if (response.success) {
           this.lobbyCode = lobbyCode;
           this.playerId = playerData.id || this.socket.id;
+          console.log(`[Socket] ✅ Joined lobby: ${lobbyCode}`);
           resolve();
         } else {
+          console.error('[Socket] Failed to join lobby:', response.error);
           reject(new Error(response.error));
         }
       });
@@ -102,7 +168,8 @@ class SocketService {
    * Leave the current lobby
    */
   leaveLobby() {
-    if (this.socket && this.lobbyCode) {
+    if (this.socket && this.lobbyCode && this.isConnected()) {
+      console.log('[Socket] Leaving lobby:', this.lobbyCode);
       this.socket.emit('leaveLobby');
       this.lobbyCode = null;
     }
@@ -112,11 +179,18 @@ class SocketService {
    * Start the game (host only)
    */
   async startGame() {
+    if (!this.isConnected()) {
+      throw new Error('Not connected to server');
+    }
+
     return new Promise((resolve, reject) => {
+      console.log('[Socket] Starting game...');
       this.socket.emit('startGame', (response) => {
         if (response.success) {
+          console.log('[Socket] ✅ Game started');
           resolve();
         } else {
+          console.error('[Socket] Failed to start game:', response.error);
           reject(new Error(response.error));
         }
       });
@@ -127,11 +201,16 @@ class SocketService {
    * Send a player action
    */
   async sendPlayerAction(action, amount = 0) {
+    if (!this.isConnected()) {
+      throw new Error('Not connected to server');
+    }
+
     return new Promise((resolve, reject) => {
       this.socket.emit('playerAction', { action, amount }, (response) => {
         if (response.success) {
           resolve();
         } else {
+          console.error('[Socket] Action failed:', response.error);
           reject(new Error(response.error));
         }
       });
@@ -142,7 +221,7 @@ class SocketService {
    * Request next hand
    */
   nextHand() {
-    if (this.socket) {
+    if (this.socket && this.isConnected()) {
       this.socket.emit('nextHand');
     }
   }

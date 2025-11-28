@@ -3,20 +3,16 @@
   width: 100vw;
   background: #1a1a2e;
   background-image:
-    repeating-linear-gradient(
-      0deg,
+    repeating-linear-gradient(0deg,
       rgba(0, 0, 0, 0.2) 0px,
       transparent 1px,
       transparent 2px,
-      rgba(0, 0, 0, 0.2) 3px
-    ),
-    repeating-linear-gradient(
-      90deg,
+      rgba(0, 0, 0, 0.2) 3px),
+    repeating-linear-gradient(90deg,
       rgba(0, 0, 0, 0.2) 0px,
       transparent 1px,
       transparent 2px,
-      rgba(0, 0, 0, 0.2) 3px
-    );
+      rgba(0, 0, 0, 0.2) 3px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -49,20 +45,20 @@
   left: 50%;
   transform: translate(-50%, -50%);
   background: #8b4513;
-  border-radius: 50% / 40%;
+  border-radius: 250px;
   padding: 15px;
   box-shadow:
     0 0 30px rgba(0, 0, 0, 0.8),
     inset 0 0 15px rgba(0, 0, 0, 0.4);
   border: 8px solid #654321;
-  width: 600px;
-  height: 450px;
+  width: 700px;
+  height: 400px;
 }
 
 .table-felt-top {
   position: relative;
   background: radial-gradient(ellipse at center, #0f5e3a 0%, #0a4229 100%);
-  border-radius: 50% / 40%;
+  border-radius: 235px;
   width: 100%;
   height: 100%;
   padding: 45px;
@@ -133,9 +129,12 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: drop-shadow(0 0 15px rgba(0, 255, 136, 0.6));
   }
+
   50% {
     filter: drop-shadow(0 0 25px rgba(0, 255, 136, 1));
   }
@@ -267,7 +266,8 @@
 }
 
 /* Player status badges */
-.all-in-badge, .folded-badge {
+.all-in-badge,
+.folded-badge {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -310,9 +310,12 @@
 }
 
 @keyframes bounce-arrow {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(-50%) translateY(0);
   }
+
   50% {
     transform: translateX(-50%) translateY(8px);
   }
@@ -420,7 +423,8 @@
     font-size: 8px;
   }
 
-  .all-in-badge, .folded-badge {
+  .all-in-badge,
+  .folded-badge {
     font-size: 8px;
     padding: 4px 8px;
   }

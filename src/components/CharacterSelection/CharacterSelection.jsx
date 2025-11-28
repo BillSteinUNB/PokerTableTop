@@ -10,7 +10,7 @@ import './CharacterSelection.css';
  * Customize player name, avatar, card color, and chip type
  */
 const CharacterSelection = () => {
-  const { playerData, updatePlayerData, navigateTo, createLobby, lobbyData } = useGame();
+  const { playerData, updatePlayerData, navigateTo, createLobby, joinLobby } = useGame();
   const [name, setName] = useState(playerData.name || '');
   const [selectedAvatar, setSelectedAvatar] = useState(playerData.avatar || 0);
   const [selectedCardColor, setSelectedCardColor] = useState(playerData.cardColor || 'classic');
@@ -29,21 +29,37 @@ const CharacterSelection = () => {
       return;
     }
 
-    // Update player data
-    updatePlayerData({
+    // Prepare player data
+    const newPlayerData = {
       name: name.trim(),
       avatar: selectedAvatar,
       cardColor: selectedCardColor,
       chipType: selectedChipType
-    });
+    };
 
-    // Create multiplayer lobby
+    // Update player data in context
+    updatePlayerData(newPlayerData);
+
     try {
-      await createLobby(true); // true = multiplayer mode
-      // Navigate to lobby
-      navigateTo('lobby');
+      // Check if we're joining an existing lobby
+      const pendingLobbyCode = sessionStorage.getItem('pendingLobbyCode');
+      console.log('[CharacterSelection] Checking for pending lobby code:', pendingLobbyCode);
+
+      if (pendingLobbyCode) {
+        // Join existing lobby
+        console.log('[CharacterSelection] Joining lobby:', pendingLobbyCode, 'with player:', newPlayerData);
+        sessionStorage.removeItem('pendingLobbyCode');
+        await joinLobby(pendingLobbyCode, true, newPlayerData); // true = multiplayer mode
+        navigateTo('lobby');
+      } else {
+        // Create new lobby
+        console.log('[CharacterSelection] No pending code found, creating new lobby with player:', newPlayerData);
+        await createLobby(true, newPlayerData); // true = multiplayer mode
+        navigateTo('lobby');
+      }
     } catch (error) {
-      setNameError(`Failed to create lobby: ${error.message}`);
+      console.error('[CharacterSelection] Error:', error);
+      setNameError(`Failed: ${error.message}`);
     }
   };
 
