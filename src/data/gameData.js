@@ -2,7 +2,7 @@ import { getCharacterImagePath, getCharacterName } from '../utils/spriteConfig';
 
 // Character avatars data
 // Each character has a face image for selection
-// Using naming convention: characterOne.png, characterTwo.png, etc.
+// Using naming convention: Character1.png, Character2.png, etc.
 export const CHARACTERS = [
   { id: 0, name: getCharacterName(0), imagePath: getCharacterImagePath(0), emoji: '😎' },
   { id: 1, name: getCharacterName(1), imagePath: getCharacterImagePath(1), emoji: '🤖' },

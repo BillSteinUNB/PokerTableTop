@@ -85,14 +85,14 @@ public/assets/sprites/
 - Number: `One`, `Two`, `Three`, `Four`, `Five`, `Six`, `Seven`, `Eight`
 
 **Characters:**
-1. `characterOne.png` - Cool Cat
-2. `characterTwo.png` - Lucky Dog
-3. `characterThree.png` - Wise Owl
-4. `characterFour.png` - Sly Fox
-5. `characterFive.png` - Happy Bear
-6. `characterSix.png` - Swift Rabbit
-7. `characterSeven.png` - Brave Lion
-8. `characterEight.png` - Clever Raccoon
+1. `Character1.png` - Cool Cat
+2. `Character2.png` - Lucky Dog
+3. `Character3.png` - Wise Owl
+4. `Character4.png` - Sly Fox
+5. `Character5.png` - Happy Bear
+6. `Character6.png` - Swift Rabbit
+7. `Character7.png` - Brave Lion
+8. `Character8.png` - Clever Raccoon
 
 **Total Characters:** 8
 

@@ -28,7 +28,7 @@ This is a **multiplayer Texas Hold'em poker game** built with React 18 + Vite on
 - **Cards:** `{rank}{Suit}.png` - Examples: `aceSpade.png`, `twoHeart.png`, `kingDiamond.png`, `tenClub.png`
 - **Card Backs:** `{color}Back.png` - Examples: `redBack.png`, `blueBack.png`, `classicBack.png`
 - **Chips:** `{color}Chip{arrangement}.png` - Examples: `blackChipOne.png`, `redChipThree.png`, `blueChipFive.png`
-- **Characters:** `character{Number}.png` - Examples: `characterOne.png`, `characterTwo.png`, `characterEight.png`
+- **Characters:** `Character{Number}.png` - Examples: `Character1.png`, `Character2.png`, `Character8.png`
 
 **Image Path:** All sprites go in `public/sprites/` directory.
 
@@ -37,7 +37,7 @@ This is a **multiplayer Texas Hold'em poker game** built with React 18 + Vite on
 getCardImagePath(suit, rank)      // Returns: "aceSpade.png"
 getCardBackImagePath(style)       // Returns: "blueBack.png"
 getChipImagePath(color, arrangement) // Returns: "blackChipOne.png"
-getCharacterImagePath(characterId)   // Returns: "characterOne.png"
+getCharacterImagePath(characterId)   // Returns: "Character1.png"
 ```
 
 **Fallback System:** All components (Card, Chip, PlayerAvatar) automatically fall back to CSS/emoji rendering if sprite images are missing. The game works perfectly without any sprite files.
@@ -129,7 +129,7 @@ PokerTableTop/
 │   └── App.jsx                      # Router (wraps everything in GameProvider)
 │
 ├── public/sprites/                  # ⚠️ Currently empty (sprites not added yet)
-│   └── (aceSpade.png, characterOne.png, etc.)
+│   └── (aceSpade.png, Character1.png, etc.)
 │
 ├── SPRITE_NAMING_GUIDE.md           # Complete sprite naming reference
 ├── MULTIPLAYER_SETUP.md             # Multiplayer setup instructions
