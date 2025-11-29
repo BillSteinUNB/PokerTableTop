@@ -680,35 +680,37 @@
   gap: 4px;
   z-index: 9;
   transform-origin: center;
-  transform: scale(0.9);
+  transform: scale(0.85);
+  /* Default scale for opponents */
 }
 
 /* Bottom Player - Cards centered, behind chips */
 .player-seat.position-bottom .seat-cards {
   top: -120px;
-  left: 50%;
-  transform: translateX(-50%) scale(0.9);
+  left: 40%;
+  transform: translateX(-50%) scale(1.1);
+  /* Larger scale for player */
 }
 
 /* Top Player - Cards centered, behind chips */
 .player-seat.position-top .seat-cards {
   bottom: -120px;
-  left: 50%;
-  transform: translateX(-50%) scale(0.9);
+  left: 60%;
+  transform: translateX(-50%) scale(0.85);
 }
 
 /* Left Player - Cards centered, behind chips, rotated */
 .player-seat.position-left .seat-cards {
   right: -120px;
-  top: 50%;
-  transform: translateY(-50%) scale(0.9) rotate(90deg);
+  top: 40%;
+  transform: translateY(-50%) scale(0.85) rotate(90deg);
 }
 
 /* Right Player - Cards centered, behind chips, rotated */
 .player-seat.position-right .seat-cards {
   left: -120px;
-  top: 50%;
-  transform: translateY(-50%) scale(0.9) rotate(-90deg);
+  top: 60%;
+  transform: translateY(-50%) scale(0.85) rotate(-90deg);
 }
 
 /* Corner positions */

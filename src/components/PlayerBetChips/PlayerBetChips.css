@@ -32,40 +32,42 @@
     border: 1px solid rgba(255, 215, 0, 0.4);
 }
 
-/* Position adjustments - chips on table in front of cards (closer to center) */
-/* Bottom player - chips on table above cards */
+/* Position adjustments - Chips to the RIGHT of the player (relative to facing) */
+/* Moved further right to avoid overlap with cards */
+
+/* Bottom player (Facing Up) - Right is Screen Right */
 .player-seat.position-bottom .player-bet-chips {
     flex-direction: row;
-    top: -160px;
-    left: 50%;
+    top: -130px;
+    left: 65%;
     transform: translateX(-50%) scale(0.8);
 }
 
-/* Top player - chips on table below cards */
+/* Top player (Facing Down) - Right is Screen Left */
 .player-seat.position-top .player-bet-chips {
     flex-direction: row;
-    bottom: -160px;
-    left: 50%;
+    bottom: -130px;
+    left: 35%;
     transform: translateX(-50%) scale(0.8);
 }
 
-/* Left player - chips on table to right of cards */
+/* Left player (Facing Right) - Right is Screen Bottom */
 .player-seat.position-left .player-bet-chips {
     flex-direction: column;
-    top: 50%;
-    right: -160px;
+    top: 65%;
+    right: -130px;
     transform: translateY(-50%) scale(0.8);
 }
 
-/* Right player - chips on table to left of cards */
+/* Right player (Facing Left) - Right is Screen Top */
 .player-seat.position-right .player-bet-chips {
     flex-direction: column;
-    top: 50%;
-    left: -160px;
+    top: 35%;
+    left: -130px;
     transform: translateY(-50%) scale(0.8);
 }
 
-/* Corner positions - chips positioned toward table center */
+/* Corner positions - Keeping them roughly centered for now, slightly adjusted */
 .player-seat.position-top-left .player-bet-chips {
     flex-direction: row;
     bottom: -140px;
