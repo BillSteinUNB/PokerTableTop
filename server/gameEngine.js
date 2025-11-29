@@ -313,11 +313,43 @@ export class GameEngine {
   }
 
   nextHand() {
+    // Check if game is over (only one player with chips or less)
+    const playersWithChips = this.players.filter(p => p.chips > 0);
+
+    if (playersWithChips.length <= 1) {
+      // Game over - we have a tournament winner!
+      this.roundState = ROUND_STATES.HAND_COMPLETE;
+      this.lastAction = {
+        type: 'game-over',
+        winner: playersWithChips.length === 1 ? playersWithChips[0] : null,
+        message: playersWithChips.length === 1
+          ? `${playersWithChips[0].name} wins the tournament!`
+          : 'Game over - no players remaining'
+      };
+      return;
+    }
+
     // Move dealer button
     let newDealer = (this.dealerPosition + 1) % this.players.length;
-    while (this.players[newDealer].chips <= 0) {
+    let attempts = 0;
+
+    // Find next dealer with chips (with safety check to prevent infinite loop)
+    while (this.players[newDealer].chips <= 0 && attempts < this.players.length) {
       newDealer = (newDealer + 1) % this.players.length;
+      attempts++;
     }
+
+    // Double-check we found a valid dealer
+    if (attempts >= this.players.length) {
+      this.roundState = ROUND_STATES.HAND_COMPLETE;
+      this.lastAction = {
+        type: 'game-over',
+        winner: null,
+        message: 'Game over - no valid dealers remaining'
+      };
+      return;
+    }
+
     this.dealerPosition = newDealer;
     this.roundState = ROUND_STATES.WAITING;
     this.startNewHand();

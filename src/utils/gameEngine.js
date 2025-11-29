@@ -570,12 +570,45 @@ function handleShowdown(gameState) {
 export function moveToNextHand(gameState) {
   const { players, dealerPosition } = gameState;
 
+  // Check if game is over (only one player with chips or less)
+  const playersWithChips = players.filter(p => p.chips > 0);
+
+  if (playersWithChips.length <= 1) {
+    // Game over - we have a tournament winner!
+    return {
+      ...gameState,
+      roundState: ROUND_STATES.HAND_COMPLETE,
+      lastAction: {
+        type: 'game-over',
+        winner: playersWithChips.length === 1 ? playersWithChips[0] : null,
+        message: playersWithChips.length === 1
+          ? `${playersWithChips[0].name} wins the tournament!`
+          : 'Game over - no players remaining'
+      }
+    };
+  }
+
   // Move dealer button
   let newDealerPosition = (dealerPosition + 1) % players.length;
+  let attempts = 0;
 
-  // Find next dealer with chips
-  while (players[newDealerPosition].chips <= 0) {
+  // Find next dealer with chips (with safety check to prevent infinite loop)
+  while (players[newDealerPosition].chips <= 0 && attempts < players.length) {
     newDealerPosition = (newDealerPosition + 1) % players.length;
+    attempts++;
+  }
+
+  // Double-check we found a valid dealer (should never happen with check above, but safety first)
+  if (attempts >= players.length) {
+    return {
+      ...gameState,
+      roundState: ROUND_STATES.HAND_COMPLETE,
+      lastAction: {
+        type: 'game-over',
+        winner: null,
+        message: 'Game over - no valid dealers remaining'
+      }
+    };
   }
 
   const updatedState = {

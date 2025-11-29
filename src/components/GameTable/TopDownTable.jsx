@@ -68,8 +68,8 @@ const TopDownTable = () => {
     const deckRect = deckRef.current.getBoundingClientRect();
 
     // Calculate deck position relative to felt
-    const startX = deckRect.left - feltRect.left + (deckRect.width / 2);
-    const startY = deckRect.top - feltRect.top + (deckRect.height / 2);
+    const startX = deckRect.left - feltRect.left + (deckRect.width / 2) - 50;
+    const startY = deckRect.top - feltRect.top + (deckRect.height / 2) - 50;
 
     const newFlyingCards = [];
     const players = gameState.players || [];
