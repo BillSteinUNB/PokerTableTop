@@ -59,10 +59,7 @@ const TopDownTable = () => {
             <div className="table-felt-top">
               {/* Community cards in center */}
               <div className="community-cards-center">
-                <div className="pot-display-center">
-                  <div className="pot-label">POT</div>
-                  <div className="pot-amount">${pot}</div>
-                </div>
+                {/* Pot display removed - moved to sidebar */}
 
                 <div className="community-cards-row">
                   {communityCards.length > 0 ? (
@@ -154,45 +151,73 @@ const TopDownTable = () => {
           </div>
 
           {/* Game status message */}
-          <div className="game-status-bar">
-            <div className="status-info">
-              <div className="status-item">
-                <span className="status-label">Round:</span>
-                <span className="status-value">{getRoundStateDisplay()}</span>
+          {/* Game status message - Only show for important events */}
+          {(lastAction?.type === 'showdown' || lastAction?.type === 'error') && (
+            <div className="game-status-bar">
+              <div className="status-info">
+                {lastAction && lastAction.type === 'showdown' && (
+                  <div className="status-item showdown-result">
+                    <span className="status-label">Winner:</span>
+                    <span className="status-value">
+                      {lastAction.winners.map(w => w.name).join(', ')} - {lastAction.winningHand?.name}
+                    </span>
+                    <button className="next-hand-btn" onClick={handleNextHand}>
+                      Next Hand
+                    </button>
+                  </div>
+                )}
+                {lastAction && lastAction.type === 'error' && (
+                  <div className="status-item error-message">
+                    {lastAction.message}
+                  </div>
+                )}
               </div>
-              <div className="status-item">
-                <span className="status-label">Pot:</span>
-                <span className="status-value">${pot}</span>
-              </div>
-              {lastAction && lastAction.type === 'showdown' && (
-                <div className="status-item showdown-result">
-                  <span className="status-label">Winner:</span>
-                  <span className="status-value">
-                    {lastAction.winners.map(w => w.name).join(', ')} - {lastAction.winningHand?.name}
-                  </span>
-                  <button className="next-hand-btn" onClick={handleNextHand}>
-                    Next Hand
-                  </button>
-                </div>
-              )}
-              {lastAction && lastAction.type === 'error' && (
-                <div className="status-item error-message">
-                  {lastAction.message}
-                </div>
-              )}
-              {roundState !== ROUND_STATES.SHOWDOWN && players[gameState.currentPlayerIndex] && (
-                <div className="status-item">
-                  <span className="status-label">Current Turn:</span>
-                  <span className="status-value">{players[gameState.currentPlayerIndex].name}</span>
-                </div>
-              )}
             </div>
-          </div>
+          )}
 
           {/* Game controls */}
           {roundState !== ROUND_STATES.SHOWDOWN && roundState !== ROUND_STATES.WAITING && (
             <Controls />
           )}
+        </div>
+      </div>
+
+      {/* Right Sidebar */}
+      <div className="game-sidebar">
+        <div className="sidebar-header">
+          <h3>TABLE INFO</h3>
+        </div>
+
+        <div className="sidebar-pot">
+          <div className="sidebar-label">CURRENT POT</div>
+          <div className="sidebar-value">${pot}</div>
+        </div>
+
+        <div className="sidebar-players">
+          <div className="sidebar-label">PLAYERS</div>
+          <div className="player-list-items">
+            {players.map((p, i) => {
+              const isSB = i === (dealerPosition + 1) % players.length;
+              const isBB = i === (dealerPosition + 2) % players.length;
+              const isDealer = i === dealerPosition;
+              const isTurn = gameState.currentPlayerIndex === i;
+
+              return (
+                <div key={i} className={`sidebar-player-item ${isTurn ? 'active' : ''} ${p.folded ? 'folded' : ''}`}>
+                  <div className="player-row-main">
+                    {isTurn && <span className="turn-indicator">▶</span>}
+                    <span className="player-name">{p.name}</span>
+                    <span className="player-chips">${p.chips}</span>
+                  </div>
+                  <div className="player-row-badges">
+                    {isDealer && <span className="badge dealer">D</span>}
+                    {isSB && <span className="badge sb">SB</span>}
+                    {isBB && <span className="badge bb">BB</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

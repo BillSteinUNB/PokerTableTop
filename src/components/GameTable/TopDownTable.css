@@ -14,14 +14,15 @@
       transparent 2px,
       rgba(0, 0, 0, 0.2) 3px);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: flex-start;
   padding: 0;
   overflow: hidden;
 }
 
 .table-view {
-  width: 100%;
+  flex: 1;
   height: 100%;
   position: relative;
   display: flex;
@@ -435,5 +436,152 @@
     font-size: 10px;
     top: -20px;
     right: -20px;
+  }
+}
+
+/* Sidebar Styles */
+.game-sidebar {
+  width: 300px;
+  background: rgba(0, 0, 0, 0.9);
+  border-left: 4px solid #444;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  font-family: 'Press Start 2P', monospace;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-header {
+  margin-bottom: 20px;
+  text-align: center;
+  border-bottom: 2px solid #666;
+  padding-bottom: 10px;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  color: #ffd700;
+  font-size: 16px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.sidebar-pot {
+  background: rgba(255, 215, 0, 0.1);
+  border: 2px solid #ffd700;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.sidebar-label {
+  font-size: 10px;
+  color: #aaa;
+  margin-bottom: 5px;
+}
+
+.sidebar-value {
+  font-size: 20px;
+  color: #fff;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.sidebar-players {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-player-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sidebar-player-item.active {
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid #00ff88;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+}
+
+.sidebar-player-item.folded {
+  opacity: 0.5;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.player-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.turn-indicator {
+  color: #00ff88;
+  margin-right: 5px;
+  animation: blink 1s infinite;
+}
+
+.player-name {
+  font-size: 12px;
+  color: #fff;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-chips {
+  font-size: 12px;
+  color: #ffd700;
+}
+
+.player-row-badges {
+  display: flex;
+  gap: 5px;
+  justify-content: flex-end;
+}
+
+.badge {
+  font-size: 8px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #000;
+  font-weight: bold;
+}
+
+.badge.dealer {
+  background: #fff;
+}
+
+.badge.sb {
+  background: #00ccff;
+}
+
+.badge.bb {
+  background: #ff9900;
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
   }
 }
