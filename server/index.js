@@ -293,7 +293,8 @@ io.on('connection', (socket) => {
         bigBlind: 10,
         startingChips: 1000,
         minPlayers: 2,
-        maxPlayers: 8
+        maxPlayers: 8,
+        ante: 0
       };
 
       const lobby = {

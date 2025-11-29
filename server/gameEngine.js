@@ -55,7 +55,9 @@ export class GameEngine {
       communityCards: this.communityCards,
       roundState: this.roundState,
       lastAction: this.lastAction,
-      settings: this.settings
+      settings: this.settings,
+      revealOrder: this.revealOrder,
+      handDescriptions: this.handDescriptions
     };
   }
 
@@ -71,6 +73,26 @@ export class GameEngine {
       hasActed: false
     }));
 
+    const activePlayers = this.players.filter(p => !p.folded);
+    if (activePlayers.length < 2) {
+      this.roundState = ROUND_STATES.WAITING;
+      return;
+    }
+
+    // Collect antes (before dealing cards)
+    let anteTotal = 0;
+    if (this.settings.ante && this.settings.ante > 0) {
+      activePlayers.forEach(player => {
+        const anteAmount = Math.min(this.settings.ante, player.chips);
+        player.chips -= anteAmount;
+        player.totalBet += anteAmount;
+        anteTotal += anteAmount;
+        if (player.chips === 0) {
+          player.allIn = true;
+        }
+      });
+    }
+
     // Create and shuffle deck
     this.deck = shuffleDeck(createDeck());
 
@@ -83,21 +105,18 @@ export class GameEngine {
       }
     });
 
-    const activePlayers = this.players.filter(p => !p.folded);
-    if (activePlayers.length < 2) {
-      this.roundState = ROUND_STATES.WAITING;
-      return;
-    }
-
     // Calculate blind positions
     const smallBlindPos = (this.dealerPosition + 1) % this.players.length;
     const bigBlindPos = (this.dealerPosition + 2) % this.players.length;
+
+    // Track big blind position for live bet feature
+    this.bigBlindPosition = bigBlindPos;
 
     // Post blinds
     this.postBlind(smallBlindPos, this.settings.smallBlind);
     this.postBlind(bigBlindPos, this.settings.bigBlind);
 
-    this.pot = this.settings.smallBlind + this.settings.bigBlind;
+    this.pot = anteTotal + this.settings.smallBlind + this.settings.bigBlind;
     this.currentBet = this.settings.bigBlind;
     this.lastRaiseAmount = this.settings.bigBlind - this.settings.smallBlind;
 
@@ -119,8 +138,12 @@ export class GameEngine {
       const blindAmount = Math.min(amount, player.chips);
       player.chips -= blindAmount;
       player.currentBet = blindAmount;
-      player.totalBet = blindAmount;
+      player.totalBet += blindAmount;
       player.allIn = player.chips === 0;
+      // Big blind hasn't acted yet (for live bet feature)
+      if (position === this.bigBlindPosition) {
+        player.hasActed = false;
+      }
     }
   }
 
@@ -157,23 +180,61 @@ export class GameEngine {
         this.lastAction = { type: 'call', playerIndex: this.currentPlayerIndex, playerName: player.name, amount: callAmount };
         break;
 
+      case 'bet':
+        // First bet in a round (when currentBet is 0)
+        if (this.currentBet !== 0) {
+          throw new Error('Cannot bet - use raise instead');
+        }
+
+        // Validate bet amount
+        // 1. Must be able to afford it
+        if (amount > player.chips) {
+          throw new Error('Insufficient chips for bet');
+        }
+
+        // 2. Must be at least big blind (unless going all-in with less)
+        if (amount < this.settings.bigBlind && amount < player.chips) {
+          throw new Error(`Minimum bet is ${this.settings.bigBlind}`);
+        }
+
+        const betAmount = Math.min(amount, player.chips);
+        player.chips -= betAmount;
+        player.currentBet += betAmount;
+        player.totalBet += betAmount;
+        player.allIn = player.chips === 0;
+        player.hasActed = true;
+        this.pot += betAmount;
+
+        // Reset hasActed for other players
+        this.players.forEach((p, idx) => {
+          if (idx !== this.currentPlayerIndex && !p.folded && !p.allIn) {
+            p.hasActed = false;
+          }
+        });
+
+        this.currentBet = player.currentBet;
+        this.lastRaiseAmount = this.currentBet;
+
+        this.lastAction = { type: 'bet', playerIndex: this.currentPlayerIndex, playerName: player.name, amount: this.currentBet };
+        break;
+
       case 'raise':
         const raiseAmount = amount - player.currentBet;
-        
+
         // Validate raise amount
         // 1. Must be able to afford it
         if (amount > player.chips + player.currentBet) {
           throw new Error('Insufficient chips for raise');
         }
-        
+
         // 2. Must meet minimum raise (current bet + last raise size, or current bet + big blind)
         const minRaiseSize = this.lastRaiseAmount > 0 ? this.lastRaiseAmount : this.settings.bigBlind;
         const minRaiseTotal = this.currentBet + minRaiseSize;
-        
+
         if (amount < minRaiseTotal) {
           throw new Error(`Minimum raise is ${minRaiseTotal}`);
         }
-        
+
         const actualRaise = Math.min(raiseAmount, player.chips);
         player.chips -= actualRaise;
         player.currentBet += actualRaise;
@@ -193,7 +254,7 @@ export class GameEngine {
         this.currentBet = player.currentBet;
         const raiseSize = this.currentBet - oldBet;
         this.lastRaiseAmount = raiseSize;
-        
+
         this.lastAction = { type: 'raise', playerIndex: this.currentPlayerIndex, playerName: player.name, amount: this.currentBet };
         break;
 
@@ -240,6 +301,15 @@ export class GameEngine {
       return true;
     }
 
+    // Special case: Big blind live bet in pre-flop
+    // If we're in pre-flop and big blind hasn't acted yet, round is not complete
+    if (this.roundState === ROUND_STATES.PRE_FLOP && this.bigBlindPosition !== undefined) {
+      const bigBlindPlayer = this.players[this.bigBlindPosition];
+      if (bigBlindPlayer && !bigBlindPlayer.folded && !bigBlindPlayer.allIn && !bigBlindPlayer.hasActed) {
+        return false;
+      }
+    }
+
     return activePlayers.every(p => {
       if (p.allIn) return true;
       if (!p.hasActed) return false;
@@ -250,7 +320,7 @@ export class GameEngine {
   advanceToNextPlayer() {
     // First, check if there are ANY players who can still act
     const playersWhoCanAct = this.players.filter(p => !p.folded && !p.allIn);
-    
+
     if (playersWhoCanAct.length === 0) {
       // No one can act - advance to next round immediately
       console.log('[advanceToNextPlayer] No players can act, advancing to next round');
@@ -429,13 +499,64 @@ export class GameEngine {
       .filter((p, i) => winnings[i] > 0)
       .map(p => ({ id: p.id, name: p.name }));
 
+    // 6. Calculate reveal order (betting order from last aggressor)
+    const revealOrder = activePlayers.map(p =>
+      this.players.findIndex(player => player.id === p.id)
+    );
+
+    // 7. Generate hand descriptions for each active player
+    const { evaluateHand } = require('./utils/handEvaluator.js');
+    const handDescriptions = activePlayers.map(p => {
+      const hand = evaluateHand([...p.hand, ...this.communityCards]);
+      let description = hand.name;
+
+      // Add more detail for specific hands
+      if (hand.name === 'One Pair') {
+        const pairRank = hand.cards[0].rank;
+        description = `Pair of ${pairRank}s`;
+      } else if (hand.name === 'Two Pair') {
+        const ranks = hand.tiebreakers.slice(0, 2);
+        description = `Two Pair: ${ranks[0]}s & ${ranks[1]}s`;
+      } else if (hand.name === 'Three of a Kind') {
+        const rank = hand.tiebreakers[0];
+        description = `Three ${rank}s`;
+      } else if (hand.name === 'Straight') {
+        const high = hand.tiebreakers[0];
+        description = `Straight to ${high}`;
+      } else if (hand.name === 'Flush') {
+        const suit = hand.cards[0].suit;
+        description = `${suit.charAt(0).toUpperCase()}${suit.slice(1)} Flush`;
+      } else if (hand.name === 'Full House') {
+        const three = hand.tiebreakers[0];
+        const two = hand.tiebreakers[1];
+        description = `${three}s full of ${two}s`;
+      } else if (hand.name === 'Four of a Kind') {
+        const rank = hand.tiebreakers[0];
+        description = `Four ${rank}s`;
+      } else if (hand.name === 'Straight Flush') {
+        const high = hand.tiebreakers[0];
+        description = `Straight Flush to ${high}`;
+      }
+
+      return {
+        playerId: p.id,
+        description: description,
+        ranking: hand.ranking
+      };
+    });
+
+    const totalPot = this.players.reduce((sum, p) => sum + p.totalBet, 0);
+
     this.pot = 0;
     this.currentBet = 0;
     this.roundState = ROUND_STATES.SHOWDOWN;
+    this.revealOrder = revealOrder;
+    this.handDescriptions = handDescriptions;
     this.lastAction = {
       type: 'showdown',
       winners: allWinners,
       winningHand: mainPotWinningHand,
+      potWon: totalPot,
       potShare: 0
     };
   }

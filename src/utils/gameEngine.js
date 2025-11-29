@@ -680,16 +680,67 @@ function handleShowdown(gameState) {
     .filter((p, i) => winnings[i] > 0)
     .map(p => ({ id: p.id, name: p.name }));
 
+  // Calculate reveal order (betting order from last aggressor)
+  // For now, use simple order: active players in seat order
+  const revealOrder = activePlayers.map(p =>
+    players.findIndex(player => player.id === p.id)
+  );
+
+  // Generate hand descriptions for each active player
+  const handDescriptions = activePlayers.map(p => {
+    const hand = evaluateHand([...p.hand, ...communityCards]);
+    let description = hand.name;
+
+    // Add more detail for specific hands
+    if (hand.name === 'One Pair') {
+      const pairRank = hand.cards[0].rank;
+      description = `Pair of ${pairRank}s`;
+    } else if (hand.name === 'Two Pair') {
+      const ranks = hand.tiebreakers.slice(0, 2);
+      description = `Two Pair: ${ranks[0]}s & ${ranks[1]}s`;
+    } else if (hand.name === 'Three of a Kind') {
+      const rank = hand.tiebreakers[0];
+      description = `Three ${rank}s`;
+    } else if (hand.name === 'Straight') {
+      const high = hand.tiebreakers[0];
+      description = `Straight to ${high}`;
+    } else if (hand.name === 'Flush') {
+      const suit = hand.cards[0].suit;
+      description = `${suit.charAt(0).toUpperCase()}${suit.slice(1)} Flush`;
+    } else if (hand.name === 'Full House') {
+      const three = hand.tiebreakers[0];
+      const two = hand.tiebreakers[1];
+      description = `${three}s full of ${two}s`;
+    } else if (hand.name === 'Four of a Kind') {
+      const rank = hand.tiebreakers[0];
+      description = `Four ${rank}s`;
+    } else if (hand.name === 'Straight Flush') {
+      const high = hand.tiebreakers[0];
+      description = `Straight Flush to ${high}`;
+    }
+
+    return {
+      playerId: p.id,
+      description: description,
+      ranking: hand.ranking
+    };
+  });
+
+  const totalPot = players.reduce((sum, p) => sum + p.totalBet, 0);
+
   return {
     ...gameState,
     players: updatedPlayers,
     pot: 0,
     currentBet: 0,
     roundState: ROUND_STATES.SHOWDOWN,
+    revealOrder: revealOrder,
+    handDescriptions: handDescriptions,
     lastAction: {
       type: 'showdown',
       winners: allWinners,
       winningHand: mainPotWinningHand,
+      potWon: totalPot,
       potShare: 0
     }
   };

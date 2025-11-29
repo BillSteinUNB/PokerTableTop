@@ -177,6 +177,10 @@ const Lobby = () => {
                   <span className="setting-value">{lobbyData.settings.bigBlind}</span>
                 </div>
                 <div className="setting-item">
+                  <span className="setting-label">Ante</span>
+                  <span className="setting-value">{lobbyData.settings.ante || 0}</span>
+                </div>
+                <div className="setting-item">
                   <span className="setting-label">Max Players</span>
                   <span className="setting-value">{lobbyData.settings.maxPlayers}</span>
                 </div>
@@ -216,6 +220,18 @@ const Lobby = () => {
                     onChange={(e) => handleSettingChange('bigBlind', e.target.value)}
                     min="2"
                     max="2000"
+                    step="1"
+                  />
+                </div>
+                <div className="setting-edit-item">
+                  <label className="setting-edit-label">Ante</label>
+                  <input
+                    type="number"
+                    className="setting-edit-input"
+                    value={localSettings.ante || 0}
+                    onChange={(e) => handleSettingChange('ante', e.target.value)}
+                    min="0"
+                    max="1000"
                     step="1"
                   />
                 </div>

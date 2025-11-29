@@ -4,6 +4,7 @@ import PlayerAvatar from '../PlayerAvatar/PlayerAvatar';
 import Card from '../Card/Card';
 import Controls from '../Controls/Controls';
 import Chip from '../Chip/Chip';
+import ShowdownReveal from '../ShowdownReveal/ShowdownReveal';
 import { CARD_SPRITE_CONFIG } from '../../utils/spriteConfig';
 import './TopDownTable.css';
 
@@ -19,6 +20,7 @@ const TopDownTable = () => {
   const [cardsDealt, setCardsDealt] = useState(true);
   const [communityCardsDealt, setCommunityCardsDealt] = useState(0);
   const [lastCommunityCount, setLastCommunityCount] = useState(0);
+  const [showingShowdown, setShowingShowdown] = useState(false);
   const feltRef = useRef(null);
   const deckRef = useRef(null);
   const seatRefs = useRef({});
@@ -44,15 +46,18 @@ const TopDownTable = () => {
 
   const potVisual = getPotVisual();
 
-  // Auto-advance to next hand after showdown
+  // Show showdown reveal animation
   useEffect(() => {
-    if (gameState.roundState === ROUND_STATES.SHOWDOWN) {
-      const timer = setTimeout(() => {
-        handleNextHand();
-      }, 4000);
-      return () => clearTimeout(timer);
+    if (gameState.roundState === ROUND_STATES.SHOWDOWN && !showingShowdown) {
+      setShowingShowdown(true);
     }
-  }, [gameState.roundState, handleNextHand, ROUND_STATES.SHOWDOWN]);
+  }, [gameState.roundState, ROUND_STATES.SHOWDOWN, showingShowdown]);
+
+  // Handle showdown reveal completion
+  const handleShowdownComplete = () => {
+    setShowingShowdown(false);
+    handleNextHand();
+  };
 
   // Trigger deal animation on new hand
   useEffect(() => {
@@ -194,6 +199,14 @@ const TopDownTable = () => {
 
   return (
     <div className="top-down-table">
+      {/* Showdown Reveal Overlay */}
+      {showingShowdown && gameState.roundState === ROUND_STATES.SHOWDOWN && (
+        <ShowdownReveal
+          gameState={gameState}
+          onComplete={handleShowdownComplete}
+        />
+      )}
+
       {/* Left Sidebar - Controls */}
       <div className="game-sidebar left">
         <Controls />
