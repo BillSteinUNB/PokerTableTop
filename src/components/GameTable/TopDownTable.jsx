@@ -216,20 +216,6 @@ const TopDownTable = () => {
                     }}
                   />
                 </div>
-                <div className="pot-chips-visual">
-                  {potVisual && (
-                    <img
-                      src={potVisual.src}
-                      alt="Pot Chips"
-                      style={{
-                        width: `${potVisual.width}px`,
-                        height: 'auto',
-                        imageRendering: 'pixelated',
-                        filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))'
-                      }}
-                    />
-                  )}
-                </div>
               </div>
 
               {/* Flying Cards Animation */}
