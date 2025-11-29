@@ -101,10 +101,7 @@ const TopDownTable = () => {
                   >
 
 
-                    {/* Dealer button */}
-                    {isDealer && (
-                      <div className="dealer-button" title="Dealer">D</div>
-                    )}
+                    {/* Dealer button removed as requested */}
 
                     {/* Player character - full size */}
                     <div className="seat-player-character" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '128px', flexShrink: 0 }}>
@@ -112,7 +109,7 @@ const TopDownTable = () => {
                         avatarId={player.avatar}
                         name={player.name}
                         scale={2}
-                        showName={true}
+                        showName={!isCurrentPlayer}
                       />
                       {isAllIn && <div className="all-in-badge">ALL IN</div>}
                       {isFolded && <div className="folded-badge">FOLDED</div>}

@@ -46,6 +46,9 @@ const PlayerAvatar = ({ avatarId = 0, name, scale = 1, showName = true }) => {
 
   return (
     <div className="player-avatar-container">
+      {showName && name && (
+        <div className="avatar-name">{name}</div>
+      )}
       <img
         src={imagePath}
         alt={name || `Avatar ${avatarId}`}
@@ -58,9 +61,6 @@ const PlayerAvatar = ({ avatarId = 0, name, scale = 1, showName = true }) => {
         }}
         onError={() => setUseSprite(false)}
       />
-      {showName && name && (
-        <div className="avatar-name">{name}</div>
-      )}
     </div>
   );
 };

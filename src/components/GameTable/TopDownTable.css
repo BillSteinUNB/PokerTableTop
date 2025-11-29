@@ -141,47 +141,47 @@
 
 /* Position around the table (8 positions) */
 .position-bottom {
-  bottom: -140px;
+  bottom: -160px;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .position-left {
-  left: -150px;
+  left: -180px;
   top: 50%;
   transform: translateY(-50%);
 }
 
 .position-top-left {
-  left: -8%;
-  top: -8%;
+  left: -120px;
+  top: -120px;
 }
 
 .position-top {
-  top: -140px;
+  top: -160px;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .position-top-right {
-  right: -8%;
-  top: -8%;
+  right: -120px;
+  top: -120px;
 }
 
 .position-right {
-  right: -150px;
+  right: -180px;
   top: 50%;
   transform: translateY(-50%);
 }
 
 .position-bottom-right {
-  right: -8%;
-  bottom: -8%;
+  right: -120px;
+  bottom: -120px;
 }
 
 .position-bottom-left {
-  left: -8%;
-  bottom: -8%;
+  left: -120px;
+  bottom: -120px;
 }
 
 .seat-player-info {
