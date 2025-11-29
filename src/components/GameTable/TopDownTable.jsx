@@ -225,7 +225,7 @@ const TopDownTable = () => {
                     transform: 'translate(-50%, -50%)'
                   }}
                 >
-                  <Card faceDown scale={0.3} />
+                  <Card faceDown scale={0.4} />
                 </div>
               ))}
 
