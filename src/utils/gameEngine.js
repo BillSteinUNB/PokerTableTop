@@ -3,8 +3,8 @@
  * Handles game flow, betting rounds, and game state management
  */
 
-import { createDeck, shuffleDeck, dealCards } from './deck';
-import { determineWinner } from './handEvaluator';
+import { createDeck, shuffleDeck, dealCards } from './deck.js';
+import { determineWinner } from './handEvaluator.js';
 
 // Game round states
 export const ROUND_STATES = {
@@ -36,7 +36,7 @@ export function initializeGame(players, settings = DEFAULT_SETTINGS) {
   const gamePlayers = players.map((player, index) => ({
     ...player,
     id: player.id || index,
-    chips: settings.startingChips,
+    chips: player.chips !== undefined ? player.chips : settings.startingChips,
     hand: [],
     currentBet: 0,
     totalBet: 0,
@@ -435,6 +435,30 @@ function advanceToNextRound(gameState) {
       return gameState;
   }
 
+  // Check if any player can act (not folded and not all-in)
+  const playersCanAct = resetPlayers.filter(p => !p.folded && !p.allIn).length;
+  
+  if (playersCanAct === 0) {
+      // Recursively advance if no one can act
+      const intermediateState = {
+        ...gameState,
+        players: resetPlayers,
+        deck: newDeck,
+        communityCards: newCommunityCards,
+        currentBet: 0,
+        roundState: newRoundState,
+        currentPlayerIndex: 0, // Dummy
+        bettingRoundComplete: false,
+        lastAction: {
+            type: 'deal-cards',
+            roundState: newRoundState,
+            cardsDealt,
+            autoAdvance: true
+        }
+      };
+      return advanceToNextRound(intermediateState);
+  }
+
   // Find first player to act (first active player after dealer)
   let firstToAct = (gameState.dealerPosition + 1) % players.length;
   while (resetPlayers[firstToAct].folded || resetPlayers[firstToAct].allIn) {
@@ -553,7 +577,6 @@ export function getValidActions(gameState) {
   }
 
   // Can go all-in if you have chips and calling isn't already all-in
-  // (If calling IS all-in, 'call' covers it, but we can keep 'all-in' for clarity or shoving)
   if (player.chips > callAmount) {
     actions.push('all-in');
   }

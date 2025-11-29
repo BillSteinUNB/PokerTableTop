@@ -76,6 +76,26 @@ const CharacterSelection = () => {
     }
   };
 
+  const handleOfflinePlay = async () => {
+    if (name.trim().length < 2) {
+      setNameError('Name must be at least 2 characters');
+      return;
+    }
+
+    const newPlayerData = {
+      name: name.trim(),
+      avatar: selectedAvatar,
+      cardColor: selectedCardColor,
+      chipType: selectedChipType
+    };
+
+    updatePlayerData(newPlayerData);
+
+    // Create local lobby (which adds bot)
+    createLobby(false, newPlayerData);
+    navigateTo('lobby');
+  };
+
   const handleBack = () => {
     navigateTo('mainMenu');
   };
@@ -179,13 +199,31 @@ const CharacterSelection = () => {
           <button className="selection-btn btn-back" onClick={handleBack}>
             ← BACK
           </button>
-          <button
-            className="selection-btn btn-continue"
-            onClick={handleContinue}
-            disabled={name.trim().length < 2}
-          >
-            CONTINUE →
-          </button>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              className="selection-btn"
+              onClick={handleOfflinePlay}
+              disabled={name.trim().length < 2}
+              style={{
+                background: '#4a90e2',
+                borderColor: '#2e5c8a',
+                color: '#fff',
+                flex: 1
+              }}
+            >
+              PLAY OFFLINE
+            </button>
+
+            <button
+              className="selection-btn btn-continue"
+              onClick={handleContinue}
+              disabled={name.trim().length < 2}
+              style={{ flex: 1 }}
+            >
+              CREATE PARTY →
+            </button>
+          </div>
         </div>
       </div>
     </div>

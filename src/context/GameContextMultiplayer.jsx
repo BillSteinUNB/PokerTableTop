@@ -80,6 +80,73 @@ export function GameProvider({ children }) {
     };
   }, [isMultiplayer]);
 
+  // Bot Logic Effect (Local Mode Only)
+  useEffect(() => {
+    if (isMultiplayer) return;
+    if (gameState.roundState === ROUND_STATES.WAITING || gameState.roundState === ROUND_STATES.SHOWDOWN || gameState.roundState === ROUND_STATES.HAND_COMPLETE) return;
+
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+
+    // Check if it's bot's turn
+    if (currentPlayer && currentPlayer.isBot && !currentPlayer.folded && !currentPlayer.allIn) {
+      const timer = setTimeout(() => {
+        makeBotMove();
+      }, 1500); // 1.5s delay for realism
+      return () => clearTimeout(timer);
+    }
+  }, [gameState, isMultiplayer]);
+
+  const makeBotMove = () => {
+    const actions = getValidActions(gameState);
+    const player = gameState.players[gameState.currentPlayerIndex];
+
+    // Simple Bot Logic
+    let action = 'fold';
+    let amount = 0;
+
+    // 1. Check if we can Check (Free card)
+    if (actions.includes('check')) {
+      action = 'check';
+      // 10% chance to raise if checking is free (bluff/value)
+      if (actions.includes('raise') && Math.random() > 0.9) {
+        action = 'raise';
+        amount = getMinRaise(gameState);
+      }
+    }
+    // 2. Call Logic
+    else if (actions.includes('call')) {
+      const callAmount = gameState.currentBet - player.currentBet;
+      const chipRatio = callAmount / player.chips;
+
+      // If call is cheap (< 10% of stack), call 90%
+      if (chipRatio < 0.1) {
+        action = Math.random() > 0.1 ? 'call' : 'fold';
+      }
+      // If call is medium (< 30%), call 60%
+      else if (chipRatio < 0.3) {
+        action = Math.random() > 0.4 ? 'call' : 'fold';
+      }
+      // If call is expensive, call 30%
+      else {
+        action = Math.random() > 0.7 ? 'call' : 'fold';
+      }
+    }
+    // 3. All-In Logic (if forced or short stack)
+    else if (actions.includes('all-in')) {
+      // Call all-in 40% of time
+      if (Math.random() > 0.6) action = 'all-in';
+    }
+
+    // 4. Random Raise (Aggression)
+    if (action !== 'fold' && actions.includes('raise') && Math.random() > 0.85) {
+      action = 'raise';
+      amount = getMinRaise(gameState);
+    }
+
+    console.log(`[Bot] ${player.name} decides to ${action} ${amount ? amount : ''}`);
+    handlePlayerActionLocal(action, amount);
+  };
+
   // Navigation functions
   const navigateTo = (view) => setCurrentView(view);
 
@@ -153,10 +220,22 @@ export function GameProvider({ children }) {
   // LOCAL: Create lobby (for demo mode)
   const createLobbyLocal = (playerDataToUse = playerData) => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // Create a bot player
+    const botPlayer = {
+      name: 'Bot',
+      avatar: 1,
+      cardColor: 'classic',
+      chipType: 'blue',
+      isBot: true,
+      chips: 1000,
+      id: 'bot-1'
+    };
+
     setLobbyData({
       code,
       isHost: true,
-      players: [playerDataToUse],
+      players: [playerDataToUse, botPlayer], // Add bot
       settings: lobbyData.settings
     });
     setIsMultiplayer(false);
