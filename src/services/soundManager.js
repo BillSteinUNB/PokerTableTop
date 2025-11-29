@@ -30,18 +30,18 @@ class SoundManager {
 
         const soundFiles = {
             // Game sounds
-            'card-shuffle': '/sounds/game/card-shuffle.mp3',
-            'card-deal': '/sounds/game/card-deal.mp3',
-            'chip-bet': '/sounds/game/chip-bet.mp3',
-            'chip-win': '/sounds/game/chip-win.mp3',
-            'victory': '/sounds/game/victory.mp3',
-            'fold': '/sounds/game/fold.mp3',
+            'card-shuffle': '/sounds/game/cardflip.mp3',
+            'card-deal': '/sounds/game/cardflip.mp3',
+            'chip-bet': '/sounds/game/button.mp3', // Fallback
+            'chip-win': '/sounds/game/button.mp3', // Fallback
+            'victory': '/sounds/game/button.mp3', // Fallback
+            'fold': '/sounds/game/cardflip.mp3', // Fallback
 
             // UI sounds
-            'button-click': '/sounds/ui/button-click.mp3',
-            'button-hover': '/sounds/ui/button-hover.mp3',
-            'error': '/sounds/ui/error.mp3',
-            'notification': '/sounds/ui/notification.mp3'
+            'button-click': '/sounds/game/button.mp3',
+            'button-hover': '/sounds/game/button.mp3', // Fallback
+            'error': '/sounds/game/button.mp3', // Fallback
+            'notification': '/sounds/game/button.mp3' // Fallback
         };
 
         // Preload all sounds

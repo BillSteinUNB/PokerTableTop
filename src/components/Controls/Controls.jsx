@@ -44,11 +44,7 @@ const Controls = () => {
     }
 
     // Play appropriate sound
-    if (action === 'fold') {
-      soundManager.play('fold');
-    } else {
-      soundManager.play('chip-bet');
-    }
+    // Sound handled in GameContext now to cover bots as well
 
     if (action === 'raise') {
       handlePlayerAction('raise', betAmount);

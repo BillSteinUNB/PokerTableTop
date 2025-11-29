@@ -32,65 +32,65 @@
     border: 1px solid rgba(255, 215, 0, 0.4);
 }
 
-/* Position adjustments - chips on table in front of each player */
-/* Bottom player - chips on table above them, toward center */
+/* Position adjustments - chips on table in front of cards (closer to center) */
+/* Bottom player - chips on table above cards */
 .player-seat.position-bottom .player-bet-chips {
     flex-direction: row;
-    top: -95px;
+    top: -160px;
     left: 50%;
     transform: translateX(-50%) scale(0.8);
 }
 
-/* Top player - chips on table below them, toward center */
+/* Top player - chips on table below cards */
 .player-seat.position-top .player-bet-chips {
     flex-direction: row;
-    bottom: -95px;
+    bottom: -160px;
     left: 50%;
     transform: translateX(-50%) scale(0.8);
 }
 
-/* Left player - chips on table to their right, toward center */
+/* Left player - chips on table to right of cards */
 .player-seat.position-left .player-bet-chips {
     flex-direction: column;
     top: 50%;
-    right: -95px;
+    right: -160px;
     transform: translateY(-50%) scale(0.8);
 }
 
-/* Right player - chips on table to their left, toward center */
+/* Right player - chips on table to left of cards */
 .player-seat.position-right .player-bet-chips {
     flex-direction: column;
     top: 50%;
-    left: -95px;
+    left: -160px;
     transform: translateY(-50%) scale(0.8);
 }
 
 /* Corner positions - chips positioned toward table center */
 .player-seat.position-top-left .player-bet-chips {
     flex-direction: row;
-    bottom: -80px;
-    right: -80px;
+    bottom: -140px;
+    right: -140px;
     transform: scale(0.8);
 }
 
 .player-seat.position-top-right .player-bet-chips {
     flex-direction: row;
-    bottom: -80px;
-    left: -80px;
+    bottom: -140px;
+    left: -140px;
     transform: scale(0.8);
 }
 
 .player-seat.position-bottom-left .player-bet-chips {
     flex-direction: row;
-    top: -80px;
-    right: -80px;
+    top: -140px;
+    right: -140px;
     transform: scale(0.8);
 }
 
 .player-seat.position-bottom-right .player-bet-chips {
     flex-direction: row;
-    top: -80px;
-    left: -80px;
+    top: -140px;
+    left: -140px;
     transform: scale(0.8);
 }
 

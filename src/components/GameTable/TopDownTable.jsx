@@ -252,7 +252,7 @@ const TopDownTable = () => {
                           suit={card.suit}
                           rank={card.rank}
                           faceDown={card.faceDown}
-                          scale={0.4}
+                          scale={0.35}
                         />
                       );
                     } else {
@@ -261,7 +261,7 @@ const TopDownTable = () => {
                         <Card
                           key={`placeholder-${index}`}
                           faceDown
-                          scale={0.4}
+                          scale={0.35}
                         />
                       );
                     }
@@ -285,17 +285,26 @@ const TopDownTable = () => {
                       } ${isFolded ? 'folded' : ''} ${isAllIn ? 'all-in' : ''}`}
                   >
 
-                    {/* Player's cards - only show for current player and after dealt */}
-                    {!isFolded && isCurrentPlayer && player.hand && player.hand.length > 0 && cardsDealt && (
+                    {/* Player's cards - show for all active players after deal */}
+                    {!isFolded && cardsDealt && (
                       <div className="seat-cards" style={{ marginBottom: '8px', marginTop: 0 }}>
-                        {player.hand.map((card, cardIndex) => (
-                          <Card
-                            key={cardIndex}
-                            suit={card.suit}
-                            rank={card.rank}
-                            scale={0.4}
-                          />
-                        ))}
+                        {isCurrentPlayer && player.hand && player.hand.length > 0 ? (
+                          // Current player's hand - Face Up
+                          player.hand.map((card, cardIndex) => (
+                            <Card
+                              key={cardIndex}
+                              suit={card.suit}
+                              rank={card.rank}
+                              scale={0.4}
+                            />
+                          ))
+                        ) : (
+                          // Opponent's hand - Face Down
+                          <>
+                            <Card faceDown scale={0.4} />
+                            <Card faceDown scale={0.4} />
+                          </>
+                        )}
                       </div>
                     )}
 

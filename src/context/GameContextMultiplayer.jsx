@@ -60,9 +60,6 @@ export function GameProvider({ children }) {
   useEffect(() => {
     if (!isMultiplayer) return;
 
-    // Initialize sound manager on first mount
-    soundManager.init();
-
     // Listen for lobby updates
     socketService.onLobbyUpdate((lobbyUpdate) => {
       setLobbyData(prev => ({
@@ -96,6 +93,11 @@ export function GameProvider({ children }) {
       socketService.removeAllListeners();
     };
   }, [isMultiplayer]);
+
+  // Initialize Sound Manager
+  useEffect(() => {
+    soundManager.init();
+  }, []);
 
   // Bot Logic Effect (Local Mode Only)
   useEffect(() => {
@@ -380,6 +382,7 @@ export function GameProvider({ children }) {
 
   // LOCAL: Start game (for demo mode)
   const startGameLocal = () => {
+    soundManager.play('card-shuffle');
     const initialGameState = initializeGame(lobbyData.players, lobbyData.settings);
     const gameWithCards = startNewHand(initialGameState);
     setGameState(gameWithCards);
@@ -411,6 +414,14 @@ export function GameProvider({ children }) {
 
   // LOCAL: Handle player action (for demo mode)
   const handlePlayerActionLocal = (action, amount = 0) => {
+    if (action === 'fold') {
+      soundManager.play('fold');
+    } else if (action === 'check') {
+      soundManager.play('button-click');
+    } else {
+      soundManager.play('chip-bet');
+    }
+
     const newGameState = processPlayerAction(gameState, action, amount);
     setGameState(newGameState);
 
