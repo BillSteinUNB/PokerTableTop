@@ -18,10 +18,23 @@ const ROUND_STATES = {
 
 export class GameEngine {
   constructor(players, settings) {
-    this.settings = settings;
+    // Merge with defaults
+    const defaultSettings = {
+      smallBlind: 1,
+      bigBlind: 2,
+      buyIn: 200,
+      startingAccountBalance: 1000,
+      winMultiplier: 2.5,
+      minBuyIn: 1,
+      minPlayers: 2,
+      maxPlayers: 8
+    };
+    this.settings = { ...defaultSettings, ...settings };
+
     this.players = players.map((player, index) => ({
       ...player,
-      chips: settings.startingChips,
+      accountBalance: player.accountBalance !== undefined ? player.accountBalance : this.settings.startingAccountBalance,
+      chips: 0, // Will be set during buy-in
       hand: [],
       currentBet: 0,
       totalBet: 0,
@@ -62,16 +75,25 @@ export class GameEngine {
   }
 
   startNewHand() {
-    // Reset player states
-    this.players = this.players.map(player => ({
-      ...player,
-      hand: [],
-      currentBet: 0,
-      totalBet: 0,
-      folded: player.chips <= 0,
-      allIn: false,
-      hasActed: false
-    }));
+    // Handle buy-ins: Players buy in from their account balance
+    this.players = this.players.map(player => {
+      const buyInAmount = Math.min(
+        this.settings.buyIn,
+        Math.max(this.settings.minBuyIn, player.accountBalance)
+      );
+
+      return {
+        ...player,
+        chips: buyInAmount,
+        accountBalance: player.accountBalance - buyInAmount,
+        hand: [],
+        currentBet: 0,
+        totalBet: 0,
+        folded: buyInAmount === 0,
+        allIn: false,
+        hasActed: false
+      };
+    });
 
     const activePlayers = this.players.filter(p => !p.folded);
     if (activePlayers.length < 2) {
@@ -489,9 +511,11 @@ export class GameEngine {
       currentPotStart = potCap;
     });
 
-    // 4. Update players with winnings
+    // 4. Update players with winnings and add to account balance
     this.players.forEach((p, index) => {
-      p.chips += winnings[index];
+      const wonAmount = winnings[index];
+      p.chips += wonAmount;
+      p.accountBalance += wonAmount;
     });
 
     // 5. Identify all winners (anyone who won chips)
@@ -547,33 +571,54 @@ export class GameEngine {
 
     const totalPot = this.players.reduce((sum, p) => sum + p.totalBet, 0);
 
+    // Check if anyone reached the win condition (2.5x buy-in)
+    const winThreshold = this.settings.buyIn * this.settings.winMultiplier;
+    const playersWhoReachedGoal = this.players.filter(p => p.chips >= winThreshold);
+
     this.pot = 0;
     this.currentBet = 0;
     this.roundState = ROUND_STATES.SHOWDOWN;
     this.revealOrder = revealOrder;
     this.handDescriptions = handDescriptions;
+    this.playersWhoReachedGoal = playersWhoReachedGoal;
     this.lastAction = {
       type: 'showdown',
       winners: allWinners,
       winningHand: mainPotWinningHand,
       potWon: totalPot,
-      potShare: 0
+      potShare: 0,
+      playersWhoReachedGoal: playersWhoReachedGoal
     };
   }
 
   nextHand() {
-    // Check if game is over (only one player with chips or less)
-    const playersWithChips = this.players.filter(p => p.chips > 0);
-
-    if (playersWithChips.length <= 1) {
-      // Game over - we have a tournament winner!
+    // Check if anyone reached the win condition
+    if (this.playersWhoReachedGoal && this.playersWhoReachedGoal.length > 0) {
+      // Someone reached the goal!
+      const winner = this.playersWhoReachedGoal[0];
       this.roundState = ROUND_STATES.HAND_COMPLETE;
       this.lastAction = {
         type: 'game-over',
-        winner: playersWithChips.length === 1 ? playersWithChips[0] : null,
-        message: playersWithChips.length === 1
-          ? `${playersWithChips[0].name} wins the tournament!`
-          : 'Game over - no players remaining'
+        winner: winner,
+        message: `${winner.name} reached $${this.settings.buyIn * this.settings.winMultiplier} and wins!`,
+        reason: 'goal-reached'
+      };
+      return;
+    }
+
+    // Check if game is over (all players out of money)
+    const playersWithMoney = this.players.filter(p => p.accountBalance > 0 || p.chips > 0);
+
+    if (playersWithMoney.length <= 1) {
+      // Game over - we have a winner by elimination!
+      this.roundState = ROUND_STATES.HAND_COMPLETE;
+      this.lastAction = {
+        type: 'game-over',
+        winner: playersWithMoney.length === 1 ? playersWithMoney[0] : null,
+        message: playersWithMoney.length === 1
+          ? `${playersWithMoney[0].name} wins - all others eliminated!`
+          : 'Game over - no players remaining',
+        reason: 'elimination'
       };
       return;
     }

@@ -9,6 +9,7 @@ import {
   ROUND_STATES
 } from '../utils/gameEngine';
 import { socketService } from '../services/socket';
+import soundManager from '../services/soundManager';
 
 const GameContext = createContext();
 
@@ -59,6 +60,9 @@ export function GameProvider({ children }) {
   useEffect(() => {
     if (!isMultiplayer) return;
 
+    // Initialize sound manager on first mount
+    soundManager.init();
+
     // Listen for lobby updates
     socketService.onLobbyUpdate((lobbyUpdate) => {
       setLobbyData(prev => ({
@@ -76,12 +80,14 @@ export function GameProvider({ children }) {
 
     // Listen for game started event
     socketService.onGameStarted(() => {
+      soundManager.play('card-shuffle');
       navigateTo('game');
     });
 
     // Listen for game over event
     socketService.onGameOver((gameOverInfo) => {
       console.log('[GameContext] Game over:', gameOverInfo);
+      soundManager.play('victory');
       setGameOverData(gameOverInfo);
       navigateTo('postGame');
     });

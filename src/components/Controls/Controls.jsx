@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../../context/GameContextMultiplayer';
+import soundManager from '../../services/soundManager';
 import './Controls.css';
 
 /**
@@ -42,6 +43,13 @@ const Controls = () => {
       return;
     }
 
+    // Play appropriate sound
+    if (action === 'fold') {
+      soundManager.play('fold');
+    } else {
+      soundManager.play('chip-bet');
+    }
+
     if (action === 'raise') {
       handlePlayerAction('raise', betAmount);
     } else {
@@ -53,6 +61,15 @@ const Controls = () => {
     const newAmount = Math.max(getMinimumRaise(), betAmount + amount);
     const maxBet = currentPlayer?.chips + currentPlayer?.currentBet || 0;
     setBetAmount(Math.min(newAmount, maxBet));
+  };
+
+  const setPotBet = (multiplier) => {
+    const pot = gameState.pot || 0;
+    const potRaise = Math.floor(pot * multiplier);
+    const targetAmount = gameState.currentBet + potRaise;
+    const maxBet = currentPlayer?.chips + currentPlayer?.currentBet || 0;
+    const minRaise = getMinimumRaise();
+    setBetAmount(Math.max(minRaise, Math.min(targetAmount, maxBet)));
   };
 
   const handleSliderChange = (e) => {
@@ -115,9 +132,9 @@ const Controls = () => {
 
           <div className="bet-buttons-row">
             <button className="bet-adjust-btn" onClick={() => adjustBet(-gameState.settings?.bigBlind || -10)}>-BB</button>
-            <button className="bet-adjust-btn" onClick={() => adjustBet(-(gameState.settings?.smallBlind || -5))}>-SB</button>
-            <button className="bet-adjust-btn" onClick={() => adjustBet(gameState.settings?.smallBlind || 5)}>+SB</button>
             <button className="bet-adjust-btn" onClick={() => adjustBet(gameState.settings?.bigBlind || 10)}>+BB</button>
+            <button className="bet-adjust-btn" onClick={() => setPotBet(0.5)}>1/2 POT</button>
+            <button className="bet-adjust-btn" onClick={() => setPotBet(1)}>POT</button>
           </div>
 
           <input

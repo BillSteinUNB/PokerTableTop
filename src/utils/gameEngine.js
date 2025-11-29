@@ -19,9 +19,12 @@ export const ROUND_STATES = {
 
 // Default game settings
 export const DEFAULT_SETTINGS = {
-  smallBlind: 5,
-  bigBlind: 10,
-  startingChips: 1000,
+  smallBlind: 1,
+  bigBlind: 2,
+  buyIn: 200,
+  startingAccountBalance: 1000,
+  winMultiplier: 2.5,
+  minBuyIn: 1,
   minPlayers: 2,
   maxPlayers: 8
 };
@@ -33,10 +36,13 @@ export const DEFAULT_SETTINGS = {
  * @returns {Object} Initial game state
  */
 export function initializeGame(players, settings = DEFAULT_SETTINGS) {
+  const mergedSettings = { ...DEFAULT_SETTINGS, ...settings };
+
   const gamePlayers = players.map((player, index) => ({
     ...player,
     id: player.id || index,
-    chips: player.chips !== undefined ? player.chips : settings.startingChips,
+    accountBalance: player.accountBalance !== undefined ? player.accountBalance : mergedSettings.startingAccountBalance,
+    chips: 0, // Will be set during buy-in
     hand: [],
     currentBet: 0,
     totalBet: 0,
@@ -55,7 +61,7 @@ export function initializeGame(players, settings = DEFAULT_SETTINGS) {
     communityCards: [],
     deck: [],
     roundState: ROUND_STATES.WAITING,
-    settings,
+    settings: mergedSettings,
     lastAction: null,
     bettingRoundComplete: false
   };
@@ -69,8 +75,28 @@ export function initializeGame(players, settings = DEFAULT_SETTINGS) {
 export function startNewHand(gameState) {
   const { players, dealerPosition, settings } = gameState;
 
+  // Handle buy-ins: Players buy in from their account balance
+  const playersAfterBuyIn = players.map(player => {
+    const buyInAmount = Math.min(
+      settings.buyIn,
+      Math.max(settings.minBuyIn, player.accountBalance)
+    );
+
+    return {
+      ...player,
+      chips: buyInAmount,
+      accountBalance: player.accountBalance - buyInAmount,
+      hand: [],
+      currentBet: 0,
+      totalBet: 0,
+      folded: buyInAmount === 0, // Can't play if no chips to buy in
+      allIn: false,
+      hasActed: false
+    };
+  });
+
   // Reset player states
-  const resetPlayers = players.map(player => ({
+  const resetPlayers = playersAfterBuyIn.map(player => ({
     ...player,
     hand: [],
     currentBet: 0,
@@ -669,11 +695,15 @@ function handleShowdown(gameState) {
     currentPotStart = potCap;
   });
 
-  // Update players with winnings
-  const updatedPlayers = players.map((p, index) => ({
-    ...p,
-    chips: p.chips + winnings[index]
-  }));
+  // Update players with winnings and add to account balance
+  const updatedPlayers = players.map((p, index) => {
+    const wonAmount = winnings[index];
+    return {
+      ...p,
+      chips: p.chips + wonAmount,
+      accountBalance: p.accountBalance + wonAmount
+    };
+  });
 
   // Identify all winners (anyone who won chips)
   const allWinners = updatedPlayers
@@ -728,6 +758,10 @@ function handleShowdown(gameState) {
 
   const totalPot = players.reduce((sum, p) => sum + p.totalBet, 0);
 
+  // Check if anyone reached the win condition (2.5x buy-in)
+  const winThreshold = gameState.settings.buyIn * gameState.settings.winMultiplier;
+  const playersWhoReachedGoal = updatedPlayers.filter(p => p.chips >= winThreshold);
+
   return {
     ...gameState,
     players: updatedPlayers,
@@ -736,12 +770,14 @@ function handleShowdown(gameState) {
     roundState: ROUND_STATES.SHOWDOWN,
     revealOrder: revealOrder,
     handDescriptions: handDescriptions,
+    playersWhoReachedGoal: playersWhoReachedGoal,
     lastAction: {
       type: 'showdown',
       winners: allWinners,
       winningHand: mainPotWinningHand,
       potWon: totalPot,
-      potShare: 0
+      potShare: 0,
+      playersWhoReachedGoal: playersWhoReachedGoal
     }
   };
 }
@@ -752,22 +788,39 @@ function handleShowdown(gameState) {
  * @returns {Object} Updated game state ready for new hand
  */
 export function moveToNextHand(gameState) {
-  const { players, dealerPosition } = gameState;
+  const { players, dealerPosition, settings } = gameState;
 
-  // Check if game is over (only one player with chips or less)
-  const playersWithChips = players.filter(p => p.chips > 0);
-
-  if (playersWithChips.length <= 1) {
-    // Game over - we have a tournament winner!
+  // Check if anyone reached the win condition
+  if (gameState.playersWhoReachedGoal && gameState.playersWhoReachedGoal.length > 0) {
+    // Someone reached the goal!
+    const winner = gameState.playersWhoReachedGoal[0]; // First player to reach goal wins
     return {
       ...gameState,
       roundState: ROUND_STATES.HAND_COMPLETE,
       lastAction: {
         type: 'game-over',
-        winner: playersWithChips.length === 1 ? playersWithChips[0] : null,
-        message: playersWithChips.length === 1
-          ? `${playersWithChips[0].name} wins the tournament!`
-          : 'Game over - no players remaining'
+        winner: winner,
+        message: `${winner.name} reached $${settings.buyIn * settings.winMultiplier} and wins!`,
+        reason: 'goal-reached'
+      }
+    };
+  }
+
+  // Check if game is over (all players out of money)
+  const playersWithMoney = players.filter(p => p.accountBalance > 0 || p.chips > 0);
+
+  if (playersWithMoney.length <= 1) {
+    // Game over - we have a winner by elimination!
+    return {
+      ...gameState,
+      roundState: ROUND_STATES.HAND_COMPLETE,
+      lastAction: {
+        type: 'game-over',
+        winner: playersWithMoney.length === 1 ? playersWithMoney[0] : null,
+        message: playersWithMoney.length === 1
+          ? `${playersWithMoney[0].name} wins - all others eliminated!`
+          : 'Game over - no players remaining',
+        reason: 'elimination'
       }
     };
   }

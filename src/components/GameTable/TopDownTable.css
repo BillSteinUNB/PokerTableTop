@@ -488,6 +488,18 @@
   color: #ffd700;
 }
 
+.player-row-secondary {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 3px;
+}
+
+.player-account {
+  font-size: 10px;
+  color: #aaa;
+  font-style: italic;
+}
+
 .player-row-badges {
   display: flex;
   gap: 5px;

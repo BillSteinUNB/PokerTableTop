@@ -395,6 +395,9 @@ const TopDownTable = () => {
                     <span className="player-name">{p.name}</span>
                     <span className="player-chips">${p.chips}</span>
                   </div>
+                  <div className="player-row-secondary">
+                    <span className="player-account">Bank: ${p.accountBalance || 0}</span>
+                  </div>
                   <div className="player-row-badges">
                     {isDealer && <span className="badge dealer">D</span>}
                     {isSB && <span className="badge sb">SB</span>}
