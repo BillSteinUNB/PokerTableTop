@@ -39,13 +39,42 @@ function generateLobbyCode() {
 
 /**
  * Broadcast game state to all players in a lobby
+ * SECURITY: Sends personalized state to each player (hides other players' hole cards)
  */
 function broadcastGameState(lobbyCode) {
   const engine = gameEngines.get(lobbyCode);
-  if (engine) {
-    const gameState = engine.getGameState();
-    io.to(lobbyCode).emit('gameStateUpdate', gameState);
-  }
+  const lobby = lobbies.get(lobbyCode);
+
+  if (!engine || !lobby) return;
+
+  const gameState = engine.getGameState();
+
+  // Send personalized game state to each player
+  lobby.players.forEach(player => {
+    const personalizedState = getPersonalizedGameState(gameState, player.socketId);
+    io.to(player.socketId).emit('gameStateUpdate', personalizedState);
+  });
+}
+
+/**
+ * Get personalized game state for a specific player
+ * Hides other players' hole cards unless it's showdown
+ */
+function getPersonalizedGameState(gameState, socketId) {
+  const isShowdown = gameState.roundState === 'showdown' || gameState.roundState === 'hand-complete';
+
+  return {
+    ...gameState,
+    players: gameState.players.map(player => {
+      // Show cards only if: it's the player's own cards, OR it's showdown and player didn't fold
+      const shouldShowCards = player.socketId === socketId || (isShowdown && !player.folded);
+
+      return {
+        ...player,
+        hand: shouldShowCards ? player.hand : (player.hand && player.hand.length > 0 ? [{}, {}] : [])
+      };
+    })
+  };
 }
 
 /**
@@ -122,8 +151,16 @@ io.on('connection', (socket) => {
    */
   socket.on('createLobby', (playerData, callback) => {
     try {
-      if (!playerData || !playerData.name) {
+      // Validate and sanitize player data
+      if (!playerData || typeof playerData.name !== 'string' || !playerData.name.trim()) {
         callback({ success: false, error: 'Invalid player data' });
+        return;
+      }
+
+      // Sanitize player name (2-20 alphanumeric characters plus spaces)
+      const sanitizedName = playerData.name.trim().substring(0, 20);
+      if (sanitizedName.length < 2) {
+        callback({ success: false, error: 'Name must be at least 2 characters' });
         return;
       }
 
@@ -134,6 +171,7 @@ io.on('connection', (socket) => {
         hostId: socket.id,
         players: [{
           ...playerData,
+          name: sanitizedName,
           id: socket.id,
           socketId: socket.id
         }],
@@ -191,12 +229,26 @@ io.on('connection', (socket) => {
    */
   socket.on('joinLobby', ({ lobbyCode, playerData }, callback) => {
     try {
-      if (!lobbyCode || !playerData || !playerData.name) {
-        callback({ success: false, error: 'Invalid lobby code or player data' });
+      // Validate lobby code
+      if (!lobbyCode || typeof lobbyCode !== 'string' || lobbyCode.length !== 6) {
+        callback({ success: false, error: 'Invalid lobby code' });
         return;
       }
 
-      const lobby = lobbies.get(lobbyCode);
+      // Validate and sanitize player data
+      if (!playerData || typeof playerData.name !== 'string' || !playerData.name.trim()) {
+        callback({ success: false, error: 'Invalid player data' });
+        return;
+      }
+
+      // Sanitize player name (2-20 characters)
+      const sanitizedName = playerData.name.trim().substring(0, 20);
+      if (sanitizedName.length < 2) {
+        callback({ success: false, error: 'Name must be at least 2 characters' });
+        return;
+      }
+
+      const lobby = lobbies.get(lobbyCode.toUpperCase());
 
       if (!lobby) {
         callback({ success: false, error: 'Lobby not found' });
@@ -214,13 +266,14 @@ io.on('connection', (socket) => {
       }
 
       // Check if player name is already taken
-      if (lobby.players.some(p => p.name === playerData.name)) {
+      if (lobby.players.some(p => p.name === sanitizedName)) {
         callback({ success: false, error: 'Name already taken' });
         return;
       }
 
       lobby.players.push({
         ...playerData,
+        name: sanitizedName,
         id: socket.id,
         socketId: socket.id
       });
@@ -316,7 +369,7 @@ io.on('connection', (socket) => {
     const engine = gameEngines.get(lobbyCode);
     const lobby = lobbies.get(lobbyCode);
 
-    if (!engine) {
+    if (!engine || !lobby) {
       callback({ success: false, error: 'Game not found' });
       return;
     }
@@ -330,6 +383,47 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Validate action type
+    if (!['fold', 'check', 'call', 'raise', 'all-in'].includes(action)) {
+      callback({ success: false, error: 'Invalid action type' });
+      return;
+    }
+
+    // Validate bet amounts for raise action
+    if (action === 'raise') {
+      // Type check and sanitization
+      if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 0) {
+        callback({ success: false, error: 'Invalid bet amount' });
+        return;
+      }
+
+      // Check if amount is integer (no fractional chips)
+      if (!Number.isInteger(amount)) {
+        callback({ success: false, error: 'Bet amount must be a whole number' });
+        return;
+      }
+
+      // Check minimum raise
+      const minRaise = gameState.currentBet + (gameState.lastRaiseAmount || gameState.settings.bigBlind);
+      if (amount < minRaise && amount !== currentPlayer.chips + currentPlayer.currentBet) {
+        callback({ success: false, error: `Minimum raise is ${minRaise}` });
+        return;
+      }
+
+      // Check maximum (can't bet more than you have)
+      const maxBet = currentPlayer.chips + currentPlayer.currentBet;
+      if (amount > maxBet) {
+        callback({ success: false, error: 'Insufficient chips' });
+        return;
+      }
+
+      // Must raise more than current bet
+      if (amount <= gameState.currentBet) {
+        callback({ success: false, error: 'Raise amount must be higher than current bet' });
+        return;
+      }
+    }
+
     // Clear any pending timeout for this lobby
     if (lobby.actionTimeout) {
       clearTimeout(lobby.actionTimeout);
@@ -337,7 +431,7 @@ io.on('connection', (socket) => {
     }
 
     try {
-      engine.handlePlayerAction(action, amount);
+      engine.handlePlayerAction(action, amount || 0);
       callback({ success: true });
       broadcastGameState(lobbyCode);
 
@@ -353,6 +447,7 @@ io.on('connection', (socket) => {
         startActionTimeout(lobbyCode);
       }
     } catch (error) {
+      console.error(`[${new Date().toLocaleTimeString()}] Error processing action:`, error);
       callback({ success: false, error: error.message });
     }
   });

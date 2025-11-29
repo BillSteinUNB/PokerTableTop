@@ -34,6 +34,7 @@ export class GameEngine {
     this.currentPlayerIndex = 0;
     this.pot = 0;
     this.currentBet = 0;
+    this.lastRaiseAmount = 0;
     this.communityCards = [];
     this.deck = [];
     this.roundState = ROUND_STATES.WAITING;
@@ -50,6 +51,7 @@ export class GameEngine {
       currentPlayerIndex: this.currentPlayerIndex,
       pot: this.pot,
       currentBet: this.currentBet,
+      lastRaiseAmount: this.lastRaiseAmount,
       communityCards: this.communityCards,
       roundState: this.roundState,
       lastAction: this.lastAction,
@@ -97,6 +99,7 @@ export class GameEngine {
 
     this.pot = this.settings.smallBlind + this.settings.bigBlind;
     this.currentBet = this.settings.bigBlind;
+    this.lastRaiseAmount = this.settings.bigBlind - this.settings.smallBlind;
 
     // First to act (after big blind)
     if (activePlayers.length === 2) {
@@ -156,9 +159,21 @@ export class GameEngine {
 
       case 'raise':
         const raiseAmount = amount - player.currentBet;
-        if (amount <= this.currentBet || amount > player.chips + player.currentBet) {
-          throw new Error('Invalid raise amount');
+        
+        // Validate raise amount
+        // 1. Must be able to afford it
+        if (amount > player.chips + player.currentBet) {
+          throw new Error('Insufficient chips for raise');
         }
+        
+        // 2. Must meet minimum raise (current bet + last raise size, or current bet + big blind)
+        const minRaiseSize = this.lastRaiseAmount > 0 ? this.lastRaiseAmount : this.settings.bigBlind;
+        const minRaiseTotal = this.currentBet + minRaiseSize;
+        
+        if (amount < minRaiseTotal) {
+          throw new Error(`Minimum raise is ${minRaiseTotal}`);
+        }
+        
         const actualRaise = Math.min(raiseAmount, player.chips);
         player.chips -= actualRaise;
         player.currentBet += actualRaise;
@@ -174,7 +189,11 @@ export class GameEngine {
           }
         });
 
+        const oldBet = this.currentBet;
         this.currentBet = player.currentBet;
+        const raiseSize = this.currentBet - oldBet;
+        this.lastRaiseAmount = raiseSize;
+        
         this.lastAction = { type: 'raise', playerIndex: this.currentPlayerIndex, playerName: player.name, amount: this.currentBet };
         break;
 
@@ -187,6 +206,7 @@ export class GameEngine {
         player.hasActed = true;
         this.pot += allInAmount;
 
+        const oldBetAllIn = this.currentBet;
         if (player.currentBet > this.currentBet) {
           this.players.forEach((p, idx) => {
             if (idx !== this.currentPlayerIndex && !p.folded && !p.allIn) {
@@ -194,6 +214,8 @@ export class GameEngine {
             }
           });
           this.currentBet = player.currentBet;
+          const allInRaiseSize = this.currentBet - oldBetAllIn;
+          this.lastRaiseAmount = allInRaiseSize;
         }
 
         this.lastAction = { type: 'all-in', playerIndex: this.currentPlayerIndex, playerName: player.name, amount: allInAmount };
@@ -253,6 +275,7 @@ export class GameEngine {
     });
 
     this.currentBet = 0;
+    this.lastRaiseAmount = 0;
 
     switch (this.roundState) {
       case ROUND_STATES.PRE_FLOP:

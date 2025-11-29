@@ -235,11 +235,26 @@ export function processPlayerAction(gameState, action, amount = 0) {
       break;
 
     case 'raise':
+      // Calculate how much the player needs to add to their current bet
       const raiseAmount = amount - player.currentBet;
-      if (raiseAmount < currentBet || amount > player.chips + player.currentBet) {
+      
+      // Validate raise amount
+      // 1. Must be able to afford it
+      if (amount > player.chips + player.currentBet) {
         return {
           ...gameState,
-          lastAction: { type: 'error', message: 'Invalid raise amount' }
+          lastAction: { type: 'error', message: 'Insufficient chips for raise' }
+        };
+      }
+      
+      // 2. Must meet minimum raise (current bet + last raise size, or current bet + big blind)
+      const minRaiseSize = gameState.lastRaiseAmount > 0 ? gameState.lastRaiseAmount : gameState.settings.bigBlind;
+      const minRaiseTotal = currentBet + minRaiseSize;
+      
+      if (amount < minRaiseTotal) {
+        return {
+          ...gameState,
+          lastAction: { type: 'error', message: `Minimum raise is ${minRaiseTotal}` }
         };
       }
 
@@ -270,11 +285,9 @@ export function processPlayerAction(gameState, action, amount = 0) {
         type: 'raise',
         playerIndex: currentPlayerIndex,
         playerName: player.name,
-        amount: updatedCurrentBet
+        amount: updatedCurrentBet,
+        raiseSize: raiseSize
       };
-
-      // Track last raise size for minimum raise calculation
-      newState.lastRaiseAmount = raiseSize;
       break;
 
     case 'all-in':
@@ -290,6 +303,8 @@ export function processPlayerAction(gameState, action, amount = 0) {
 
       // If all-in raise, reset hasActed for other players
       const newAllInBet = player.currentBet + allInAmount;
+      const allInRaiseSize = newAllInBet - updatedCurrentBet;
+      
       if (newAllInBet > currentBet) {
         updatedPlayers = updatedPlayers.map((p, idx) => {
           if (idx !== currentPlayerIndex && !p.folded && !p.allIn) {
@@ -297,11 +312,7 @@ export function processPlayerAction(gameState, action, amount = 0) {
           }
           return p;
         });
-        const allInRaiseSize = newAllInBet - updatedCurrentBet;
         updatedCurrentBet = newAllInBet;
-
-        // Track last raise size for minimum raise calculation
-        newState.lastRaiseAmount = allInRaiseSize;
       }
 
       updatedPot += allInAmount;
@@ -309,7 +320,8 @@ export function processPlayerAction(gameState, action, amount = 0) {
         type: 'all-in',
         playerIndex: currentPlayerIndex,
         playerName: player.name,
-        amount: allInAmount
+        amount: allInAmount,
+        raiseSize: allInRaiseSize
       };
       break;
 
@@ -327,6 +339,13 @@ export function processPlayerAction(gameState, action, amount = 0) {
     currentBet: updatedCurrentBet,
     lastAction: actionTaken
   };
+  
+  // Track last raise size for minimum raise calculation (for raise and all-in actions)
+  if (action === 'raise' || action === 'all-in') {
+    if (actionTaken.raiseSize && actionTaken.raiseSize > 0) {
+      newState.lastRaiseAmount = actionTaken.raiseSize;
+    }
+  }
 
   // Check if betting round is complete
   if (isBettingRoundComplete(newState)) {
@@ -648,7 +667,7 @@ export function moveToNextHand(gameState) {
  * @returns {Array} Array of valid action names
  */
 export function getValidActions(gameState) {
-  const { players, currentPlayerIndex, currentBet } = gameState;
+  const { players, currentPlayerIndex, currentBet, settings, lastRaiseAmount = 0 } = gameState;
   const player = players[currentPlayerIndex];
 
   if (!player || player.folded || player.allIn) {
@@ -667,13 +686,18 @@ export function getValidActions(gameState) {
     actions.push('call');
   }
 
-  // Can raise if player has chips left after calling
-  if (player.chips > callAmount) {
+  // Calculate minimum raise requirements
+  const minRaiseSize = lastRaiseAmount > 0 ? lastRaiseAmount : settings.bigBlind;
+  const minRaiseTotal = currentBet + minRaiseSize;
+  const chipsNeededForMinRaise = minRaiseTotal - player.currentBet;
+
+  // Can raise if player has enough chips to meet minimum raise
+  if (player.chips >= chipsNeededForMinRaise) {
     actions.push('raise');
   }
 
-  // Can go all-in if you have chips and calling isn't already all-in
-  if (player.chips > callAmount) {
+  // Can go all-in if you have chips (always available if you have chips)
+  if (player.chips > 0) {
     actions.push('all-in');
   }
 
