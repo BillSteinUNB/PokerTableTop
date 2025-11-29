@@ -389,14 +389,35 @@ function isBettingRoundComplete(gameState) {
 function advanceToNextPlayer(gameState) {
   const { players, currentPlayerIndex } = gameState;
 
-  let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+  // First, check if there are ANY players who can still act
+  const playersWhoCanAct = players.filter(p => !p.folded && !p.allIn);
+  
+  if (playersWhoCanAct.length === 0) {
+    // No one can act - advance to next round immediately
+    console.log('[advanceToNextPlayer] No players can act, advancing to next round');
+    return advanceToNextRound(gameState);
+  }
 
-  // Find next active player
+  if (playersWhoCanAct.length === 1) {
+    // Only one player can act - check if betting round is complete
+    const onlyPlayer = playersWhoCanAct[0];
+    if (onlyPlayer.hasActed) {
+      console.log('[advanceToNextPlayer] Only one player can act and has acted, advancing to next round');
+      return advanceToNextRound(gameState);
+    }
+  }
+
+  // Find next active player who can act
+  let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+  let attempts = 0;
+
   while (players[nextPlayerIndex].folded || players[nextPlayerIndex].allIn) {
     nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
+    attempts++;
 
-    // Safety check: if we've looped all the way around
-    if (nextPlayerIndex === currentPlayerIndex) {
+    // Safety check: prevent infinite loop
+    if (attempts >= players.length) {
+      console.log('[advanceToNextPlayer] Looped through all players, advancing to next round');
       return advanceToNextRound(gameState);
     }
   }
@@ -499,20 +520,62 @@ function advanceToNextRound(gameState) {
   // Find first player to act
   // In heads-up, dealer acts first on all post-flop streets
   // In multi-way, first active player after dealer acts first
-  const activePlayers = resetPlayers.filter(p => !p.folded && !p.allIn);
+  const playersWhoCanActNow = resetPlayers.filter(p => !p.folded && !p.allIn);
   let firstToAct;
 
-  if (activePlayers.length === 2) {
+  if (playersWhoCanActNow.length === 2) {
     // Heads-up: dealer acts first post-flop
     firstToAct = gameState.dealerPosition;
+    let attempts = 0;
     while (resetPlayers[firstToAct].folded || resetPlayers[firstToAct].allIn) {
       firstToAct = (firstToAct + 1) % players.length;
+      attempts++;
+      if (attempts >= players.length) {
+        // Safety: if we can't find anyone, recursively advance (e.g. deal next street)
+        console.error('[advanceToNextRound] Could not find first player to act (heads-up), advancing');
+        return advanceToNextRound({
+            ...gameState,
+            players: resetPlayers,
+            deck: newDeck,
+            communityCards: newCommunityCards,
+            currentBet: 0,
+            roundState: newRoundState,
+            currentPlayerIndex: 0, // Dummy
+            bettingRoundComplete: false,
+            lastAction: {
+                type: 'deal-cards',
+                roundState: newRoundState,
+                cardsDealt
+            }
+        });
+      }
     }
   } else {
     // Multi-way: first active player after dealer
     firstToAct = (gameState.dealerPosition + 1) % players.length;
+    let attempts = 0;
     while (resetPlayers[firstToAct].folded || resetPlayers[firstToAct].allIn) {
       firstToAct = (firstToAct + 1) % players.length;
+      attempts++;
+      if (attempts >= players.length) {
+        // Safety: if we can't find anyone, recursively advance
+        console.error('[advanceToNextRound] Could not find first player to act (multi-way), advancing');
+        return advanceToNextRound({
+            ...gameState,
+            players: resetPlayers,
+            deck: newDeck,
+            communityCards: newCommunityCards,
+            currentBet: 0,
+            roundState: newRoundState,
+            currentPlayerIndex: 0, // Dummy
+            bettingRoundComplete: false,
+            lastAction: {
+                type: 'deal-cards',
+                roundState: newRoundState,
+                cardsDealt
+            }
+        });
+      }
     }
   }
 
@@ -545,7 +608,20 @@ function handleShowdown(gameState) {
   const activePlayers = players.filter(p => !p.folded);
 
   if (activePlayers.length === 0) {
-    return gameState;
+    // Edge case: Everyone folded (e.g. via debug force next hand)
+    // End the hand gracefully
+    return {
+        ...gameState,
+        roundState: ROUND_STATES.SHOWDOWN,
+        pot: 0,
+        currentBet: 0,
+        lastAction: {
+            type: 'showdown',
+            winners: [],
+            winningHand: null,
+            message: 'All players folded'
+        }
+    };
   }
 
   // 2. Sort active players by totalBet (ascending) to find side pot levels

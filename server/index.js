@@ -560,6 +560,60 @@ io.on('connection', (socket) => {
   });
 
   /**
+   * Force next hand (debug tool - host only)
+   * Folds all remaining players and advances to next hand
+   */
+  socket.on('forceNextHand', (callback) => {
+    const lobbyCode = socket.lobbyCode;
+    const engine = gameEngines.get(lobbyCode);
+    const lobby = lobbies.get(lobbyCode);
+
+    if (!engine || !lobby) {
+      callback({ success: false, error: 'Game not found' });
+      return;
+    }
+
+    // Only host can force next hand
+    if (lobby.hostId !== socket.id) {
+      callback({ success: false, error: 'Only host can force next hand' });
+      return;
+    }
+
+    console.log(`[${new Date().toLocaleTimeString()}] Host forcing next hand in lobby ${lobbyCode}`);
+
+    try {
+      const gameState = engine.getGameState();
+      
+      // Fold all players who haven't folded or gone all-in
+      gameState.players.forEach((player, index) => {
+        if (!player.folded && !player.allIn && player.chips > 0) {
+          console.log(`[${new Date().toLocaleTimeString()}] Force folding ${player.name}`);
+          // Set the current player to this player temporarily and fold them
+          engine.currentPlayerIndex = index;
+          try {
+            engine.handlePlayerAction('fold', 0);
+          } catch (error) {
+            console.error(`[${new Date().toLocaleTimeString()}] Error force folding ${player.name}:`, error);
+          }
+        }
+      });
+
+      // Broadcast updated state
+      broadcastGameState(lobbyCode);
+
+      callback({ success: true });
+
+      // Notify all players that host forced next hand
+      io.to(lobbyCode).emit('hostForcedNextHand', {
+        message: 'Host skipped to next hand'
+      });
+    } catch (error) {
+      console.error(`[${new Date().toLocaleTimeString()}] Error forcing next hand:`, error);
+      callback({ success: false, error: error.message });
+    }
+  });
+
+  /**
    * Handle disconnection
    */
   socket.on('disconnect', () => {

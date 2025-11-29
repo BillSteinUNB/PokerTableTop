@@ -48,6 +48,25 @@ button,
   user-select: none;
 }
 
+/* Prevent image dragging and saving for all images */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  pointer-events: auto;
+  /* Keep clickable but not draggable */
+}
+
+/* Disable context menu (right-click) on images */
+img {
+  -webkit-touch-callout: none;
+}
+
 /* Focus styles for accessibility */
 button:focus-visible {
   outline: 3px solid var(--color-accent-gold);
@@ -75,6 +94,13 @@ button:focus-visible {
 }
 
 @keyframes loading-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
 }

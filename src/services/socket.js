@@ -229,6 +229,28 @@ class SocketService {
   }
 
   /**
+   * Force next hand (debug tool - host only)
+   * Folds all remaining players and advances to next hand
+   */
+  async forceNextHand() {
+    if (!this.isConnected()) {
+      throw new Error('Not connected to server');
+    }
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('forceNextHand', (response) => {
+        if (response.success) {
+          console.log('[Socket] ✅ Forced next hand');
+          resolve();
+        } else {
+          console.error('[Socket] Failed to force next hand:', response.error);
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
+  /**
    * Listen for lobby updates
    */
   onLobbyUpdate(callback) {

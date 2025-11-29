@@ -363,6 +363,23 @@ export function GameProvider({ children }) {
     }
   };
 
+  // Force next hand (debug tool - host only)
+  const forceNextHand = async () => {
+    if (!isMultiplayer) {
+      // For local mode, just advance to next hand
+      handleNextHandLocal();
+      return;
+    }
+
+    try {
+      await socketService.forceNextHand();
+      // State update will come from socket event
+    } catch (error) {
+      console.error('Failed to force next hand:', error);
+      alert(`Failed to skip hand: ${error.message}`);
+    }
+  };
+
   const getPlayerValidActions = () => {
     return getValidActions(gameState);
   };
@@ -433,6 +450,7 @@ export function GameProvider({ children }) {
     setGameState,
     handlePlayerAction,
     handleNextHand,
+    forceNextHand,
     getPlayerValidActions,
     getMinimumRaise,
     ROUND_STATES,

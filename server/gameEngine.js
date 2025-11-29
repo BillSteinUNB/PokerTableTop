@@ -248,6 +248,27 @@ export class GameEngine {
   }
 
   advanceToNextPlayer() {
+    // First, check if there are ANY players who can still act
+    const playersWhoCanAct = this.players.filter(p => !p.folded && !p.allIn);
+    
+    if (playersWhoCanAct.length === 0) {
+      // No one can act - advance to next round immediately
+      console.log('[advanceToNextPlayer] No players can act, advancing to next round');
+      this.advanceToNextRound();
+      return;
+    }
+
+    if (playersWhoCanAct.length === 1) {
+      // Only one player can act - check if betting round is complete
+      const onlyPlayer = playersWhoCanAct[0];
+      if (onlyPlayer.hasActed) {
+        console.log('[advanceToNextPlayer] Only one player can act and has acted, advancing to next round');
+        this.advanceToNextRound();
+        return;
+      }
+    }
+
+    // Find next active player who can act
     let nextIndex = (this.currentPlayerIndex + 1) % this.players.length;
     let attempts = 0;
 
@@ -255,8 +276,9 @@ export class GameEngine {
       nextIndex = (nextIndex + 1) % this.players.length;
       attempts++;
 
-      // Safety check: if we've checked everyone or looped back to current player
-      if (nextIndex === this.currentPlayerIndex || attempts >= this.players.length) {
+      // Safety check: prevent infinite loop
+      if (attempts >= this.players.length) {
+        console.log('[advanceToNextPlayer] Looped through all players, advancing to next round');
         this.advanceToNextRound();
         return;
       }
@@ -338,6 +360,16 @@ export class GameEngine {
     const activePlayers = this.players.filter(p => !p.folded);
 
     if (activePlayers.length === 0) {
+      // Edge case: Everyone folded
+      this.roundState = ROUND_STATES.SHOWDOWN;
+      this.pot = 0;
+      this.currentBet = 0;
+      this.lastAction = {
+        type: 'showdown',
+        winners: [],
+        winningHand: null,
+        message: 'All players folded'
+      };
       return;
     }
 
