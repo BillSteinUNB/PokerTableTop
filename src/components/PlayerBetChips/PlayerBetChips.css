@@ -4,6 +4,7 @@
     gap: 3px;
     position: absolute;
     z-index: 10;
+    transform: scale(0.8);
 }
 
 .bet-chip-stack {
@@ -35,7 +36,7 @@
 /* Bottom player - chips on table above them, toward center */
 .player-seat.position-bottom .player-bet-chips {
     flex-direction: row;
-    top: -30px;
+    top: -95px;
     left: 50%;
     transform: translateX(-50%) scale(0.8);
 }
@@ -43,7 +44,7 @@
 /* Top player - chips on table below them, toward center */
 .player-seat.position-top .player-bet-chips {
     flex-direction: row;
-    bottom: -30px;
+    bottom: -95px;
     left: 50%;
     transform: translateX(-50%) scale(0.8);
 }
@@ -52,7 +53,7 @@
 .player-seat.position-left .player-bet-chips {
     flex-direction: column;
     top: 50%;
-    right: -30px;
+    right: -95px;
     transform: translateY(-50%) scale(0.8);
 }
 
@@ -60,36 +61,36 @@
 .player-seat.position-right .player-bet-chips {
     flex-direction: column;
     top: 50%;
-    left: -30px;
+    left: -95px;
     transform: translateY(-50%) scale(0.8);
 }
 
 /* Corner positions - chips positioned toward table center */
 .player-seat.position-top-left .player-bet-chips {
     flex-direction: row;
-    bottom: -25px;
-    right: -25px;
+    bottom: -80px;
+    right: -80px;
     transform: scale(0.8);
 }
 
 .player-seat.position-top-right .player-bet-chips {
     flex-direction: row;
-    bottom: -25px;
-    left: -25px;
+    bottom: -80px;
+    left: -80px;
     transform: scale(0.8);
 }
 
 .player-seat.position-bottom-left .player-bet-chips {
     flex-direction: row;
-    top: -25px;
-    right: -25px;
+    top: -80px;
+    right: -80px;
     transform: scale(0.8);
 }
 
 .player-seat.position-bottom-right .player-bet-chips {
     flex-direction: row;
-    top: -25px;
-    left: -25px;
+    top: -80px;
+    left: -80px;
     transform: scale(0.8);
 }
 
