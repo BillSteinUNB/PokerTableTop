@@ -6,30 +6,36 @@ import './Chip.css';
  * Poker Chip Component
  * Displays a poker chip using individual image files with fallback rendering
  *
- * @param {string} color - Chip color (black, red, blue, green, white)
- * @param {string} arrangement - Chip arrangement (singleChip, smallStack, etc.)
+ * @param {string} color - Chip color (red, blue, white, purple, green, pink, black, yellow)
+ * @param {number} stackSize - Stack size 1-4 (1=single chip, 4=largest stack)
  * @param {number} count - Number of chips (optional, for display)
  * @param {number} scale - Scale multiplier (optional, defaults to 1)
  */
-const Chip = ({ color = 'black', arrangement = 'singleChip', count, scale = 1 }) => {
+const Chip = ({ color = 'red', stackSize = 4, count, scale = 1 }) => {
   const [useSprite, setUseSprite] = useState(true);
   const config = CHIP_SPRITE_CONFIG;
 
   // Fallback chip colors
   const chipColors = {
-    black: '#1a1a1a',
     red: '#dc2626',
     blue: '#2563eb',
+    white: '#f5f5f5',
+    purple: '#9333ea',
     green: '#16a34a',
-    white: '#f5f5f5'
+    pink: '#ec4899',
+    black: '#1a1a1a',
+    yellow: '#eab308'
   };
 
   const chipBorders = {
-    black: '#fff',
     red: '#fff',
     blue: '#fff',
+    white: '#1a1a1a',
+    purple: '#fff',
     green: '#fff',
-    white: '#1a1a1a'
+    pink: '#fff',
+    black: '#fff',
+    yellow: '#1a1a1a'
   };
 
   // If sprite fails, use CSS fallback
@@ -63,7 +69,7 @@ const Chip = ({ color = 'black', arrangement = 'singleChip', count, scale = 1 })
   }
 
   // Get the image path for this chip
-  const imagePath = getChipImagePath(color, arrangement);
+  const imagePath = getChipImagePath(color, stackSize);
 
   // If we couldn't get a valid path, use fallback
   if (!imagePath) {
@@ -75,7 +81,7 @@ const Chip = ({ color = 'black', arrangement = 'singleChip', count, scale = 1 })
     <div className="chip-container">
       <img
         src={imagePath}
-        alt={`${color} chip ${arrangement}`}
+        alt={`${color} chip stack (${stackSize})`}
         className="chip-sprite"
         style={{
           width: `${config.chipWidth * scale}px`,

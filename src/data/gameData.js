@@ -24,10 +24,14 @@ export const CARD_COLORS = [
 ];
 
 // Chip type options - corresponding to chip color files
+// Using largest stack (size 4) for character selection preview
 export const CHIP_TYPES = [
-  { id: 'black', name: 'Black', color: 'black' },
   { id: 'red', name: 'Red', color: 'red' },
   { id: 'blue', name: 'Blue', color: 'blue' },
+  { id: 'white', name: 'White', color: 'white' },
+  { id: 'purple', name: 'Purple', color: 'purple' },
   { id: 'green', name: 'Green', color: 'green' },
-  { id: 'white', name: 'White', color: 'white' }
+  { id: 'pink', name: 'Pink', color: 'pink' },
+  { id: 'black', name: 'Black', color: 'black' },
+  { id: 'yellow', name: 'Yellow', color: 'yellow' }
 ];

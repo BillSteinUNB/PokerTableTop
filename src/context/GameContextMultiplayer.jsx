@@ -22,7 +22,7 @@ export function GameProvider({ children }) {
     name: '',
     avatar: 0,
     cardColor: 'classic',
-    chipType: 'black'
+    chipType: 'red'
   });
 
   // Lobby data

@@ -97,67 +97,108 @@ export const CHARACTER_CONFIG = {
 };
 
 /**
- * Get the file path for a specific card
+ * Get the file path for a specific card using the new numbering system
+ * Cards 1-13: Hearts (Ace-King)
+ * Cards 14-15: Jokers (not used)
+ * Cards 16-28: Diamonds (Ace-King)
+ * Cards 29-41: Spades (Ace-King)
+ * Cards 42-54: Clubs (Ace-King)
+ * 
  * @param {string} suit - Card suit (spades, hearts, clubs, diamonds)
  * @param {string} rank - Card rank (A, 2-10, J, Q, K)
  * @returns {string} Full path to card image
  */
 export function getCardImagePath(suit, rank) {
-  const config = CARD_SPRITE_CONFIG;
-  const rankName = config.ranks[rank.toUpperCase()];
-  const suitName = config.suits[suit.toLowerCase()];
+  // Map rank to position (0-12 for Ace through King)
+  const rankMap = {
+    'A': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6,
+    '8': 7, '9': 8, '10': 9, 'J': 10, 'Q': 11, 'K': 12
+  };
 
-  if (!rankName || !suitName) {
+  // Map suit to base card number
+  const suitBaseMap = {
+    'hearts': 1,      // Cards 1-13
+    'diamonds': 16,   // Cards 16-28
+    'spades': 29,     // Cards 29-41
+    'clubs': 42       // Cards 42-54
+  };
+
+  const rankIndex = rankMap[rank.toUpperCase()];
+  const suitBase = suitBaseMap[suit.toLowerCase()];
+
+  if (rankIndex === undefined || !suitBase) {
     console.warn(`Invalid card: ${rank} of ${suit}`);
     return null;
   }
 
-  // Format: aceSpade.png, twoHeart.png, kingDiamond.png
-  return `${config.basePath}${rankName}${suitName}.png`;
+  const cardNumber = suitBase + rankIndex;
+  return `/assets/cards/card${cardNumber}.png`;
 }
 
 /**
- * Get the file path for a card back
- * @param {string} style - Card back style (classic, red, blue, green, purple)
+ * Get the file path for a card back using the new numbering system
+ * Card 55: Red back
+ * Card 56: Green back
+ * Card 57: Blue back
+ * Card 58: Purple back
+ * 
+ * @param {string} style - Card back style (classic/red, green, blue, purple)
  * @returns {string} Full path to card back image
  */
 export function getCardBackImagePath(style = 'classic') {
-  const config = CARD_SPRITE_CONFIG;
-  const fileName = config.cardBackStyles[style.toLowerCase()];
+  // Map style to card number
+  const styleMap = {
+    'classic': 55,  // Red (default/classic)
+    'red': 55,
+    'green': 56,
+    'blue': 57,
+    'purple': 58
+  };
 
-  if (!fileName) {
-    console.warn(`Invalid card back style: ${style}`);
-    return `${config.cardBackPath}${config.cardBackStyles.classic}`;
-  }
-
-  return `${config.cardBackPath}${fileName}`;
+  const cardNumber = styleMap[style.toLowerCase()] || 55;
+  return `/assets/cards/card${cardNumber}.png`;
 }
 
 /**
- * Get the file path for a chip image
- * @param {string} color - Chip color (black, red, blue, green, white)
- * @param {string} arrangement - Chip arrangement type (singleChip, smallStack, etc.)
+ * Get the file path for a chip image using the new numbering system
+ * Chips 1-4: Red (1, 2, 4, 7 chips)
+ * Chips 5-8: Blue
+ * Chips 9-12: White
+ * Chips 13-16: Purple
+ * Chips 17-20: Green
+ * Chips 21-24: Pink
+ * Chips 25-28: Black
+ * Chips 29-32: Yellow
+ * 
+ * @param {string} color - Chip color (red, blue, white, purple, green, pink, black, yellow)
+ * @param {number} stackSize - Stack size (1-4, where 1=smallest, 4=largest stack)
  * @returns {string} Full path to chip image
  */
-export function getChipImagePath(color = 'black', arrangement = 'singleChip') {
-  const config = CHIP_SPRITE_CONFIG;
-  const arrangementSuffix = config.arrangements[arrangement];
+export function getChipImagePath(color = 'red', stackSize = 1) {
+  // Map color to base chip number
+  const colorBaseMap = {
+    'red': 1,      // Chips 1-4
+    'blue': 5,     // Chips 5-8
+    'white': 9,    // Chips 9-12
+    'purple': 13,  // Chips 13-16
+    'green': 17,   // Chips 17-20
+    'pink': 21,    // Chips 21-24
+    'black': 25,   // Chips 25-28
+    'yellow': 29   // Chips 29-32
+  };
 
-  if (!arrangementSuffix) {
-    console.warn(`Invalid chip arrangement: ${arrangement}`);
-    return null;
+  const colorBase = colorBaseMap[color.toLowerCase()];
+
+  if (!colorBase) {
+    console.warn(`Invalid chip color: ${color}, using red`);
+    return `/assets/chips/chip1.png`;
   }
 
-  if (!config.colors.includes(color.toLowerCase())) {
-    console.warn(`Invalid chip color: ${color}`);
-    color = 'black';
-  }
+  // Ensure stackSize is between 1 and 4
+  const size = Math.max(1, Math.min(4, stackSize));
 
-  // Capitalize first letter of color
-  const colorCapitalized = color.charAt(0).toUpperCase() + color.slice(1).toLowerCase();
-
-  // Format: blueChipOne.png, redChipThree.png
-  return `${config.basePath}${color.toLowerCase()}Chip${arrangementSuffix}.png`;
+  const chipNumber = colorBase + (size - 1);
+  return `/assets/chips/chip${chipNumber}.png`;
 }
 
 /**
