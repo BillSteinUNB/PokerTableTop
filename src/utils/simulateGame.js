@@ -191,37 +191,51 @@ gameState = processPlayerAction(gameState, 'call');
 // Side Pot: 200 (Big1) + 200 (Big2) = 400.
 // Total Pot: 700.
 
-console.log('Total Pot:', gameState.pot);
+// Turn
+gameState = processPlayerAction(gameState, 'check'); // Big1
+gameState = processPlayerAction(gameState, 'check'); // Big2
 
-// Mock players with hands for manual check
-const riggedPlayers = [
-  { id: 0, name: 'Shorty', chips: 0, hand: [createCard('A', 'spades'), createCard('A', 'clubs')], allIn: true }, // Pocket Aces
-  { id: 1, name: 'Big1', chips: 700, hand: [createCard('K', 'spades'), createCard('K', 'clubs')], allIn: false }, // Pocket Kings
-  { id: 2, name: 'Big2', chips: 700, hand: [createCard('Q', 'spades'), createCard('Q', 'clubs')], allIn: false }  // Pocket Queens
-];
-const communityCards = [
+// River
+gameState = processPlayerAction(gameState, 'check'); // Big1
+
+// RIG HANDS BEFORE SHOWDOWN
+gameState.players[0].hand = [createCard('A', 'spades'), createCard('A', 'clubs')];
+gameState.players[1].hand = [createCard('K', 'spades'), createCard('K', 'clubs')];
+gameState.players[2].hand = [createCard('Q', 'spades'), createCard('Q', 'clubs')];
+gameState.communityCards = [
   createCard('2', 'hearts'), createCard('3', 'hearts'), createCard('4', 'hearts'),
   createCard('5', 'hearts'), createCard('7', 'diamonds')
 ];
 
-// Mock gameState
-const showdownState = {
-  players: riggedPlayers,
-  communityCards,
-  pot: 700, 
-  roundState: 'river'
-};
+// Final Check triggers Showdown
+gameState = processPlayerAction(gameState, 'check'); // Big2
 
-const result = determineWinner(riggedPlayers, communityCards);
-console.log('Winner:', result.winners[0].name);
+console.log('Total Pot (Before Distribution):', 700); // We know it was 700
 
-if (result.winners.length === 1 && result.winners[0].name === 'Shorty') {
-    console.log('Shorty won best hand.');
-    const potShare = Math.floor(showdownState.pot / result.winners.length);
-    console.log(`Shorty receives: ${potShare}`);
-    if (potShare > 300) {
-        console.warn('⚠️ BUG DETECTED: Shorty won the side pot too! Side pots are not implemented.');
-    }
+// Shorty (0) had best hand (Aces). Big1 (1) had 2nd best (Kings).
+// Shorty bet 100. Big1 bet 300. Big2 bet 300.
+// Main Pot (Shorty eligible): 100*3 = 300. Shorty wins.
+// Side Pot (Big1 vs Big2): 200*2 = 400. Big1 wins.
+
+const shortyChips = gameState.players[0].chips;
+console.log(`Shorty Final Chips: ${shortyChips}`);
+
+if (shortyChips === 300) {
+    console.log('✅ PASSED: Shorty won Main Pot (300).');
+} else {
+    console.error(`❌ FAILED: Shorty has ${shortyChips}, expected 300.`);
+    process.exit(1);
+}
+
+const big1Chips = gameState.players[1].chips;
+console.log(`Big1 Final Chips: ${big1Chips}`);
+
+// Big1 started with 1000. Bet 300. Remaining: 700. Won 400. Total: 1100.
+if (big1Chips === 1100) {
+    console.log('✅ PASSED: Big1 won Side Pot (400).');
+} else {
+    console.error(`❌ FAILED: Big1 has ${big1Chips}, expected 1100.`);
+    process.exit(1);
 }
 
 console.log('\n--- Simulation Complete ---');

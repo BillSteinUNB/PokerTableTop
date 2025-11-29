@@ -488,23 +488,64 @@ function advanceToNextRound(gameState) {
  * @returns {Object} Updated game state with winner info
  */
 function handleShowdown(gameState) {
-  const { players, communityCards, pot } = gameState;
+  const { players, communityCards } = gameState;
 
-  const { winners, winningHand } = determineWinner(players, communityCards);
+  // 1. Identify active players (not folded)
+  const activePlayers = players.filter(p => !p.folded);
 
-  // Split pot among winners
-  const potShare = Math.floor(pot / winners.length);
+  if (activePlayers.length === 0) {
+    return gameState;
+  }
 
-  const updatedPlayers = players.map(player => {
-    const isWinner = winners.some(w => w.id === player.id);
-    if (isWinner) {
-      return {
-        ...player,
-        chips: player.chips + potShare
-      };
+  // 2. Sort active players by totalBet (ascending) to find side pot levels
+  const betLevels = [...new Set(activePlayers.map(p => p.totalBet))]
+    .sort((a, b) => a - b);
+
+  let currentPotStart = 0;
+  const winnings = new Array(players.length).fill(0);
+  let mainPotWinningHand = null;
+
+  betLevels.forEach(level => {
+    const potCap = level;
+    const potAmount = players.reduce((sum, p) => {
+      const contribution = Math.min(p.totalBet, potCap) - Math.min(p.totalBet, currentPotStart);
+      return sum + Math.max(0, contribution);
+    }, 0);
+
+    if (potAmount > 0) {
+      // Find eligible players for this side pot (active and bet at least this amount)
+      const eligiblePlayers = activePlayers.filter(p => p.totalBet >= potCap);
+
+      // Determine winner among eligible
+      const { winners, winningHand } = determineWinner(eligiblePlayers, communityCards);
+
+      if (!mainPotWinningHand) {
+        mainPotWinningHand = winningHand;
+      }
+
+      // Distribute pot
+      const share = Math.floor(potAmount / winners.length);
+      winners.forEach(winner => {
+        const idx = players.findIndex(p => p.id === winner.id);
+        if (idx !== -1) {
+          winnings[idx] += share;
+        }
+      });
     }
-    return player;
+
+    currentPotStart = potCap;
   });
+
+  // Update players with winnings
+  const updatedPlayers = players.map((p, index) => ({
+    ...p,
+    chips: p.chips + winnings[index]
+  }));
+
+  // Identify all winners (anyone who won chips)
+  const allWinners = updatedPlayers
+    .filter((p, i) => winnings[i] > 0)
+    .map(p => ({ id: p.id, name: p.name }));
 
   return {
     ...gameState,
@@ -514,9 +555,9 @@ function handleShowdown(gameState) {
     roundState: ROUND_STATES.SHOWDOWN,
     lastAction: {
       type: 'showdown',
-      winners: winners.map(w => ({ id: w.id, name: w.name })),
-      winningHand,
-      potShare
+      winners: allWinners,
+      winningHand: mainPotWinningHand,
+      potShare: 0
     }
   };
 }
