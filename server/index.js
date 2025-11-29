@@ -200,9 +200,44 @@ function broadcastLobbyState(lobbyCode) {
       players: lobby.players,
       settings: lobby.settings,
       code: lobbyCode,
-      hostId: lobby.hostId
+      hostId: lobby.hostId,
+      lastWinner: lobby.lastWinner || null
     });
   }
+}
+
+/**
+ * Reset lobby to pre-game state after a game ends
+ * Keeps players in the lobby but resets game state
+ */
+function resetLobbyForNewGame(lobbyCode, winnerData = null) {
+  const lobby = lobbies.get(lobbyCode);
+  if (!lobby) return;
+
+  console.log(`[${new Date().toLocaleTimeString()}] Resetting lobby ${lobbyCode} for new game`);
+
+  // Store the winner info for display in lobby
+  lobby.lastWinner = winnerData;
+
+  // Reset game state
+  lobby.gameStarted = false;
+
+  // Mark all players as not ready
+  lobby.players.forEach(p => {
+    p.ready = false;
+  });
+
+  // Clear action timeout
+  if (lobby.actionTimeout) {
+    clearTimeout(lobby.actionTimeout);
+    lobby.actionTimeout = null;
+  }
+
+  // Delete the game engine
+  gameEngines.delete(lobbyCode);
+
+  // Broadcast updated lobby state
+  broadcastLobbyState(lobbyCode);
 }
 
 io.on('connection', (socket) => {
@@ -221,8 +256,12 @@ io.on('connection', (socket) => {
   /**
    * Create a new lobby
    */
-  socket.on('createLobby', (playerData, callback) => {
+  socket.on('createLobby', (data, callback) => {
     try {
+      // Handle both old format (just playerData) and new format (with settings)
+      const playerData = data.playerData || data;
+      const customSettings = data.settings || null;
+
       // Validate and sanitize player data
       if (!playerData || typeof playerData.name !== 'string' || !playerData.name.trim()) {
         callback({ success: false, error: 'Invalid player data' });
@@ -248,6 +287,15 @@ io.on('connection', (socket) => {
         expiresAt: Date.now() + 60 * 60 * 1000
       });
 
+      // Use custom settings or defaults
+      const defaultSettings = {
+        smallBlind: 5,
+        bigBlind: 10,
+        startingChips: 1000,
+        minPlayers: 2,
+        maxPlayers: 8
+      };
+
       const lobby = {
         code: lobbyCode,
         hostId: socket.id,
@@ -258,13 +306,7 @@ io.on('connection', (socket) => {
           socketId: socket.id,
           sessionToken: sessionToken
         }],
-        settings: {
-          smallBlind: 5,
-          bigBlind: 10,
-          startingChips: 1000,
-          minPlayers: 2,
-          maxPlayers: 8
-        },
+        settings: customSettings ? { ...defaultSettings, ...customSettings } : defaultSettings,
         gameStarted: false,
         actionTimeout: null
       };
@@ -273,7 +315,7 @@ io.on('connection', (socket) => {
       socket.join(lobbyCode);
       socket.lobbyCode = lobbyCode;
 
-      console.log(`[${new Date().toLocaleTimeString()}] Lobby created: ${lobbyCode} by ${sanitizedName} (${socket.id})`);
+      console.log(`[${new Date().toLocaleTimeString()}] Lobby created: ${lobbyCode} by ${sanitizedName} with settings:`, lobby.settings);
 
       callback({ success: true, lobbyCode, sessionToken });
       broadcastLobbyState(lobbyCode);
@@ -417,6 +459,58 @@ io.on('connection', (socket) => {
   });
 
   /**
+   * Update lobby settings (host only)
+   */
+  socket.on('updateLobbySettings', (settings, callback) => {
+    const lobbyCode = socket.lobbyCode;
+    const lobby = lobbies.get(lobbyCode);
+
+    if (!lobby) {
+      callback({ success: false, error: 'Lobby not found' });
+      return;
+    }
+
+    if (lobby.hostId !== socket.id) {
+      callback({ success: false, error: 'Only host can update settings' });
+      return;
+    }
+
+    if (lobby.gameStarted) {
+      callback({ success: false, error: 'Cannot update settings after game has started' });
+      return;
+    }
+
+    // Validate settings
+    if (settings.smallBlind !== undefined && (typeof settings.smallBlind !== 'number' || settings.smallBlind < 1)) {
+      callback({ success: false, error: 'Invalid small blind value' });
+      return;
+    }
+
+    if (settings.bigBlind !== undefined && (typeof settings.bigBlind !== 'number' || settings.bigBlind < 2)) {
+      callback({ success: false, error: 'Invalid big blind value' });
+      return;
+    }
+
+    if (settings.startingChips !== undefined && (typeof settings.startingChips !== 'number' || settings.startingChips < 100)) {
+      callback({ success: false, error: 'Invalid starting chips value' });
+      return;
+    }
+
+    if (settings.maxPlayers !== undefined && (typeof settings.maxPlayers !== 'number' || settings.maxPlayers < 2 || settings.maxPlayers > 8)) {
+      callback({ success: false, error: 'Max players must be between 2 and 8' });
+      return;
+    }
+
+    // Update lobby settings
+    lobby.settings = { ...lobby.settings, ...settings };
+
+    console.log(`[${new Date().toLocaleTimeString()}] Lobby ${lobbyCode} settings updated:`, lobby.settings);
+
+    callback({ success: true });
+    broadcastLobbyState(lobbyCode);
+  });
+
+  /**
    * Start game
    */
   socket.on('startGame', (callback) => {
@@ -534,7 +628,26 @@ io.on('connection', (socket) => {
       if (newState.roundState === 'showdown') {
         setTimeout(() => {
           engine.nextHand();
-          broadcastGameState(lobbyCode);
+          const finalState = engine.getGameState();
+
+          // Check if game is over
+          if (finalState.lastAction?.type === 'game-over') {
+            console.log(`[${new Date().toLocaleTimeString()}] Game over in lobby ${lobbyCode}`);
+
+            // Emit game over event to all players
+            io.to(lobbyCode).emit('gameOver', {
+              winner: finalState.lastAction.winner,
+              message: finalState.lastAction.message
+            });
+
+            // Reset lobby after a delay to show winner
+            setTimeout(() => {
+              resetLobbyForNewGame(lobbyCode, finalState.lastAction.winner);
+            }, 3000);
+          } else {
+            // Normal next hand
+            broadcastGameState(lobbyCode);
+          }
         }, 5000);
       } else {
         // Start timeout for next player
@@ -555,8 +668,53 @@ io.on('connection', (socket) => {
 
     if (engine) {
       engine.nextHand();
-      broadcastGameState(lobbyCode);
+      const finalState = engine.getGameState();
+
+      // Check if game is over
+      if (finalState.lastAction?.type === 'game-over') {
+        console.log(`[${new Date().toLocaleTimeString()}] Game over in lobby ${lobbyCode}`);
+
+        // Emit game over event to all players
+        io.to(lobbyCode).emit('gameOver', {
+          winner: finalState.lastAction.winner,
+          message: finalState.lastAction.message
+        });
+
+        // Reset lobby after a delay to show winner
+        setTimeout(() => {
+          resetLobbyForNewGame(lobbyCode, finalState.lastAction.winner);
+        }, 3000);
+      } else {
+        broadcastGameState(lobbyCode);
+      }
     }
+  });
+
+  /**
+   * Ready up for next game
+   */
+  socket.on('readyUp', (isReady, callback) => {
+    const lobbyCode = socket.lobbyCode;
+    const lobby = lobbies.get(lobbyCode);
+
+    if (!lobby) {
+      callback({ success: false, error: 'Lobby not found' });
+      return;
+    }
+
+    // Find the player
+    const player = lobby.players.find(p => p.socketId === socket.id);
+    if (!player) {
+      callback({ success: false, error: 'Player not found' });
+      return;
+    }
+
+    // Update ready state
+    player.ready = isReady;
+    console.log(`[${new Date().toLocaleTimeString()}] ${player.name} is ${isReady ? 'ready' : 'not ready'} in lobby ${lobbyCode}`);
+
+    callback({ success: true });
+    broadcastLobbyState(lobbyCode);
   });
 
   /**
@@ -583,7 +741,7 @@ io.on('connection', (socket) => {
 
     try {
       const gameState = engine.getGameState();
-      
+
       // Fold all players who haven't folded or gone all-in
       gameState.players.forEach((player, index) => {
         if (!player.folded && !player.allIn && player.chips > 0) {

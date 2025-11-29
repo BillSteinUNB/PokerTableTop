@@ -119,7 +119,7 @@ class SocketService {
   /**
    * Create a new lobby
    */
-  async createLobby(playerData) {
+  async createLobby(playerData, settings = null) {
     await this.connect();
 
     if (!this.isConnected()) {
@@ -127,7 +127,8 @@ class SocketService {
     }
 
     return new Promise((resolve, reject) => {
-      this.socket.emit('createLobby', playerData, (response) => {
+      const payload = settings ? { playerData, settings } : playerData;
+      this.socket.emit('createLobby', payload, (response) => {
         if (response.success) {
           this.lobbyCode = response.lobbyCode;
           this.playerId = playerData.id || this.socket.id;
@@ -135,6 +136,27 @@ class SocketService {
           resolve(response.lobbyCode);
         } else {
           console.error('[Socket] Failed to create lobby:', response.error);
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }
+
+  /**
+   * Update lobby settings (host only)
+   */
+  async updateLobbySettings(settings) {
+    if (!this.isConnected()) {
+      throw new Error('Not connected to server');
+    }
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('updateLobbySettings', settings, (response) => {
+        if (response.success) {
+          console.log('[Socket] ✅ Lobby settings updated');
+          resolve();
+        } else {
+          console.error('[Socket] Failed to update lobby settings:', response.error);
           reject(new Error(response.error));
         }
       });
@@ -275,6 +297,35 @@ class SocketService {
     if (this.socket) {
       this.socket.on('gameStarted', callback);
     }
+  }
+
+  /**
+   * Listen for game over event
+   */
+  onGameOver(callback) {
+    if (this.socket) {
+      this.socket.on('gameOver', callback);
+    }
+  }
+
+  /**
+   * Ready up for next game
+   */
+  async readyUp(isReady) {
+    if (!this.isConnected()) {
+      throw new Error('Not connected to server');
+    }
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('readyUp', isReady, (response) => {
+        if (response.success) {
+          resolve();
+        } else {
+          console.error('[Socket] Failed to ready up:', response.error);
+          reject(new Error(response.error));
+        }
+      });
+    });
   }
 
   /**

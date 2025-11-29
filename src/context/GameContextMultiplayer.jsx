@@ -51,6 +51,10 @@ export function GameProvider({ children }) {
   const [connectionError, setConnectionError] = useState(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
+  // Post-game state
+  const [gameOverData, setGameOverData] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+
   // Setup Socket.io listeners
   useEffect(() => {
     if (!isMultiplayer) return;
@@ -73,6 +77,13 @@ export function GameProvider({ children }) {
     // Listen for game started event
     socketService.onGameStarted(() => {
       navigateTo('game');
+    });
+
+    // Listen for game over event
+    socketService.onGameOver((gameOverInfo) => {
+      console.log('[GameContext] Game over:', gameOverInfo);
+      setGameOverData(gameOverInfo);
+      navigateTo('postGame');
     });
 
     return () => {
@@ -167,7 +178,7 @@ export function GameProvider({ children }) {
       };
 
       console.log('[GameContext] Creating lobby with player data:', playerWithId);
-      const code = await socketService.createLobby(playerWithId);
+      const code = await socketService.createLobby(playerWithId, lobbyData.settings);
 
       setLobbyData(prev => ({
         ...prev,
@@ -272,11 +283,29 @@ export function GameProvider({ children }) {
     }
   };
 
-  const updateLobbySettings = (settings) => {
+  const updateGameSettings = (settings) => {
     setLobbyData(prev => ({
       ...prev,
       settings: { ...prev.settings, ...settings }
     }));
+  };
+
+  const updateLobbySettings = async (settings) => {
+    if (isMultiplayer) {
+      // Send to server
+      try {
+        await socketService.updateLobbySettings(settings);
+      } catch (error) {
+        console.error('[GameContext] Failed to update lobby settings:', error);
+        alert('Failed to update settings: ' + error.message);
+      }
+    } else {
+      // Update locally
+      setLobbyData(prev => ({
+        ...prev,
+        settings: { ...prev.settings, ...settings }
+      }));
+    }
   };
 
   // MULTIPLAYER: Start game
@@ -429,9 +458,39 @@ export function GameProvider({ children }) {
       players: [],
       roundState: 'waiting'
     });
+    setGameOverData(null);
+    setIsReady(false);
 
     // Navigate back to main menu
     navigateTo('mainMenu');
+  };
+
+  // Return to lobby after game over
+  const returnToLobby = () => {
+    console.log('[GameContext] Returning to lobby');
+    setGameOverData(null);
+    setIsReady(false);
+    setGameState({
+      pot: 0,
+      currentPlayerIndex: 0,
+      communityCards: [],
+      players: [],
+      roundState: 'waiting'
+    });
+    navigateTo('lobby');
+  };
+
+  // Ready up for next game
+  const readyUp = async (ready) => {
+    if (!isMultiplayer) return;
+
+    try {
+      await socketService.readyUp(ready);
+      setIsReady(ready);
+    } catch (error) {
+      console.error('[GameContext] Failed to ready up:', error);
+      throw error;
+    }
   };
 
   const value = {
@@ -444,6 +503,7 @@ export function GameProvider({ children }) {
     joinLobby,
     leaveLobby,
     leaveGame,
+    updateGameSettings,
     updateLobbySettings,
     startGame,
     gameState,
@@ -454,7 +514,13 @@ export function GameProvider({ children }) {
     getPlayerValidActions,
     getMinimumRaise,
     ROUND_STATES,
-    isMultiplayer
+    isMultiplayer,
+    gameOverData,
+    returnToLobby,
+    readyUp,
+    isReady,
+    connectionError,
+    isConnecting
   };
 
   return (

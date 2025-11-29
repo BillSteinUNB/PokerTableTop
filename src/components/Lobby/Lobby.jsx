@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContextMultiplayer';
 import { CHARACTERS } from '../../data/gameData';
 import './Lobby.css';
@@ -8,7 +8,9 @@ import './Lobby.css';
  * Waiting room showing players and lobby settings before game starts
  */
 const Lobby = () => {
-  const { lobbyData, createLobby, playerData, startGame, navigateTo, updateLobbySettings } = useGame();
+  const { lobbyData, createLobby, playerData, startGame, navigateTo, updateLobbySettings, readyUp, isReady } = useGame();
+  const [editingSettings, setEditingSettings] = useState(false);
+  const [localSettings, setLocalSettings] = useState(lobbyData.settings || {});
 
   useEffect(() => {
     // If no lobby exists and we're the host, create one
@@ -16,6 +18,30 @@ const Lobby = () => {
       createLobby();
     }
   }, []);
+
+  useEffect(() => {
+    // Update local settings when lobby data changes
+    if (lobbyData.settings) {
+      setLocalSettings(lobbyData.settings);
+    }
+  }, [lobbyData.settings]);
+
+  const handleSettingChange = (key, value) => {
+    setLocalSettings(prev => ({
+      ...prev,
+      [key]: parseInt(value) || 0
+    }));
+  };
+
+  const handleSaveSettings = () => {
+    updateLobbySettings(localSettings);
+    setEditingSettings(false);
+  };
+
+  const handleCancelEdit = () => {
+    setLocalSettings(lobbyData.settings);
+    setEditingSettings(false);
+  };
 
   const handleStartGame = () => {
     startGame();
@@ -28,6 +54,14 @@ const Lobby = () => {
 
   const handleLeaveLobby = () => {
     navigateTo('mainMenu');
+  };
+
+  const handleReadyToggle = async () => {
+    try {
+      await readyUp(!isReady);
+    } catch (error) {
+      console.error('Failed to ready up:', error);
+    }
   };
 
   // Get players from lobby data (comes from server in multiplayer mode)
@@ -48,6 +82,13 @@ const Lobby = () => {
             </div>
           </div>
         </div>
+
+        {/* Previous Winner Banner */}
+        {lobbyData.lastWinner && (
+          <div className="previous-winner-banner">
+            🏆 Previous Winner: <strong>{lobbyData.lastWinner.name}</strong> 🏆
+          </div>
+        )}
 
         <div className="lobby-content">
           {/* Players List */}
@@ -87,6 +128,9 @@ const Lobby = () => {
                         <span className="detail-item">Card: {player.cardColor}</span>
                         <span className="detail-item">Chip: {player.chipType}</span>
                       </div>
+                      {player.ready && (
+                        <div className="ready-badge">✓ READY</div>
+                      )}
                     </div>
                     {player.id === lobbyData.players?.[0]?.id && (
                       <div className="player-badge">👑</div>
@@ -111,30 +155,90 @@ const Lobby = () => {
           <div className="settings-section">
             <div className="section-header">
               <span className="section-title">SETTINGS</span>
+              {lobbyData.isHost && !editingSettings && (
+                <button className="edit-settings-btn" onClick={() => setEditingSettings(true)}>
+                  ✏️ EDIT
+                </button>
+              )}
             </div>
 
-            <div className="settings-list">
-              <div className="setting-item">
-                <span className="setting-label">Starting Chips</span>
-                <span className="setting-value">{lobbyData.settings.startingChips}</span>
+            {!editingSettings ? (
+              <div className="settings-list">
+                <div className="setting-item">
+                  <span className="setting-label">Starting Chips</span>
+                  <span className="setting-value">{lobbyData.settings.startingChips}</span>
+                </div>
+                <div className="setting-item">
+                  <span className="setting-label">Small Blind</span>
+                  <span className="setting-value">{lobbyData.settings.smallBlind}</span>
+                </div>
+                <div className="setting-item">
+                  <span className="setting-label">Big Blind</span>
+                  <span className="setting-value">{lobbyData.settings.bigBlind}</span>
+                </div>
+                <div className="setting-item">
+                  <span className="setting-label">Max Players</span>
+                  <span className="setting-value">{lobbyData.settings.maxPlayers}</span>
+                </div>
               </div>
-              <div className="setting-item">
-                <span className="setting-label">Small Blind</span>
-                <span className="setting-value">{lobbyData.settings.smallBlind}</span>
-              </div>
-              <div className="setting-item">
-                <span className="setting-label">Big Blind</span>
-                <span className="setting-value">{lobbyData.settings.bigBlind}</span>
-              </div>
-              <div className="setting-item">
-                <span className="setting-label">Max Players</span>
-                <span className="setting-value">{lobbyData.settings.maxPlayers}</span>
-              </div>
-            </div>
-
-            {lobbyData.isHost && (
-              <div className="settings-note">
-                <p>⚙️ Settings can be adjusted later</p>
+            ) : (
+              <div className="settings-edit">
+                <div className="setting-edit-item">
+                  <label className="setting-edit-label">Starting Chips</label>
+                  <input
+                    type="number"
+                    className="setting-edit-input"
+                    value={localSettings.startingChips}
+                    onChange={(e) => handleSettingChange('startingChips', e.target.value)}
+                    min="100"
+                    max="100000"
+                    step="100"
+                  />
+                </div>
+                <div className="setting-edit-item">
+                  <label className="setting-edit-label">Small Blind</label>
+                  <input
+                    type="number"
+                    className="setting-edit-input"
+                    value={localSettings.smallBlind}
+                    onChange={(e) => handleSettingChange('smallBlind', e.target.value)}
+                    min="1"
+                    max="1000"
+                    step="1"
+                  />
+                </div>
+                <div className="setting-edit-item">
+                  <label className="setting-edit-label">Big Blind</label>
+                  <input
+                    type="number"
+                    className="setting-edit-input"
+                    value={localSettings.bigBlind}
+                    onChange={(e) => handleSettingChange('bigBlind', e.target.value)}
+                    min="2"
+                    max="2000"
+                    step="1"
+                  />
+                </div>
+                <div className="setting-edit-item">
+                  <label className="setting-edit-label">Max Players</label>
+                  <input
+                    type="number"
+                    className="setting-edit-input"
+                    value={localSettings.maxPlayers}
+                    onChange={(e) => handleSettingChange('maxPlayers', e.target.value)}
+                    min="2"
+                    max="8"
+                    step="1"
+                  />
+                </div>
+                <div className="settings-edit-buttons">
+                  <button className="settings-edit-btn save" onClick={handleSaveSettings}>
+                    ✓ SAVE
+                  </button>
+                  <button className="settings-edit-btn cancel" onClick={handleCancelEdit}>
+                    ✗ CANCEL
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -144,6 +248,14 @@ const Lobby = () => {
           <button className="lobby-btn btn-leave" onClick={handleLeaveLobby}>
             ← LEAVE
           </button>
+          {!lobbyData.isHost && (
+            <button
+              className={`lobby-btn btn-ready ${isReady ? 'ready' : ''}`}
+              onClick={handleReadyToggle}
+            >
+              {isReady ? '✓ READY' : 'READY UP'}
+            </button>
+          )}
           {lobbyData.isHost && (
             <button
               className="lobby-btn btn-start"

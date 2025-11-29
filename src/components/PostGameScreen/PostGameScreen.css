@@ -1,0 +1,168 @@
+.post-game-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.post-game-container {
+    text-align: center;
+    max-width: 600px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+}
+
+.victory-banner {
+    margin-bottom: 40px;
+    animation: slideDown 0.6s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.victory-title {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5),
+        0 0 40px rgba(255, 215, 0, 0.3);
+    margin: 0 0 20px 0;
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+
+    0%,
+    100% {
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.5),
+            0 0 40px rgba(255, 215, 0, 0.3);
+    }
+
+    50% {
+        text-shadow: 0 0 30px rgba(255, 215, 0, 0.8),
+            0 0 60px rgba(255, 215, 0, 0.5);
+    }
+}
+
+.victory-message {
+    font-size: 1.5rem;
+    color: #e0e0e0;
+    margin: 0;
+}
+
+.winner-display {
+    margin: 40px 0;
+    animation: scaleIn 0.8s ease-out 0.3s both;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.winner-spotlight {
+    display: inline-block;
+    padding: 20px;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+    margin-bottom: 20px;
+}
+
+.winner-name {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #ffd700;
+    margin: 20px 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.winner-chips {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 1.5rem;
+    color: #fff;
+    margin-top: 20px;
+}
+
+.chip-label {
+    color: #aaa;
+}
+
+.chip-value {
+    color: #4caf50;
+    font-weight: bold;
+    font-size: 1.8rem;
+}
+
+.return-lobby-btn {
+    margin-top: 40px;
+    padding: 15px 40px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.return-lobby-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.return-lobby-btn:active {
+    transform: translateY(0);
+}
+
+.lobby-hint {
+    margin-top: 20px;
+    font-size: 1rem;
+    color: #888;
+    font-style: italic;
+}

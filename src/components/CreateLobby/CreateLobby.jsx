@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '../../context/GameContextMultiplayer';
 import { initializeGame, startNewHand } from '../../utils/gameEngine';
 import './CreateLobby.css';
@@ -8,9 +8,27 @@ import './CreateLobby.css';
  * Screen for creating a new game lobby (goes to character select first)
  */
 const CreateLobby = () => {
-  const { navigateTo, updatePlayerData, createLobby, lobbyData, setGameState } = useGame();
+  const { navigateTo, updatePlayerData, createLobby, lobbyData, setGameState, updateGameSettings } = useGame();
+
+  // Game settings state
+  const [settings, setSettings] = useState({
+    startingChips: 1000,
+    smallBlind: 5,
+    bigBlind: 10,
+    minPlayers: 2,
+    maxPlayers: 8
+  });
+
+  const handleSettingChange = (key, value) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: parseInt(value) || 0
+    }));
+  };
 
   const handleContinue = () => {
+    // Store settings for when lobby is created
+    updateGameSettings(settings);
     // Go to character selection first, then create lobby
     navigateTo('characterSelect');
   };
@@ -38,16 +56,8 @@ const CreateLobby = () => {
       { name: 'Charlie', avatar: 3, cardColor: 'green', chipType: 'green' }
     ];
 
-    // Use game engine to initialize and start game
-    const gameSettings = {
-      smallBlind: 5,
-      bigBlind: 10,
-      startingChips: 1000,
-      minPlayers: 2,
-      maxPlayers: 8
-    };
-
-    const initialGameState = initializeGame(allPlayers, gameSettings);
+    // Use the current settings from state
+    const initialGameState = initializeGame(allPlayers, settings);
     const gameWithCards = startNewHand(initialGameState);
 
     setGameState(gameWithCards);
@@ -65,32 +75,74 @@ const CreateLobby = () => {
         </div>
 
         <div className="create-info">
-          <div className="info-box">
-            <div className="info-icon">👤</div>
-            <div className="info-text">
-              <div className="info-label">Max Players</div>
-              <div className="info-value">2 - 8 Players</div>
+          <div className="settings-grid">
+            <div className="setting-control">
+              <label className="setting-label">
+                <span className="setting-icon">💰</span>
+                Starting Chips
+              </label>
+              <input
+                type="number"
+                className="setting-input"
+                value={settings.startingChips}
+                onChange={(e) => handleSettingChange('startingChips', e.target.value)}
+                min="100"
+                max="100000"
+                step="100"
+              />
             </div>
-          </div>
 
-          <div className="info-box">
-            <div className="info-icon">💰</div>
-            <div className="info-text">
-              <div className="info-label">Starting Chips</div>
-              <div className="info-value">1000 Chips</div>
+            <div className="setting-control">
+              <label className="setting-label">
+                <span className="setting-icon">🔽</span>
+                Small Blind
+              </label>
+              <input
+                type="number"
+                className="setting-input"
+                value={settings.smallBlind}
+                onChange={(e) => handleSettingChange('smallBlind', e.target.value)}
+                min="1"
+                max="1000"
+                step="1"
+              />
             </div>
-          </div>
 
-          <div className="info-box">
-            <div className="info-icon">🎲</div>
-            <div className="info-text">
-              <div className="info-label">Game Mode</div>
-              <div className="info-value">Texas Hold'em</div>
+            <div className="setting-control">
+              <label className="setting-label">
+                <span className="setting-icon">🔼</span>
+                Big Blind
+              </label>
+              <input
+                type="number"
+                className="setting-input"
+                value={settings.bigBlind}
+                onChange={(e) => handleSettingChange('bigBlind', e.target.value)}
+                min="2"
+                max="2000"
+                step="1"
+              />
+            </div>
+
+            <div className="setting-control">
+              <label className="setting-label">
+                <span className="setting-icon">👤</span>
+                Max Players
+              </label>
+              <input
+                type="number"
+                className="setting-input"
+                value={settings.maxPlayers}
+                onChange={(e) => handleSettingChange('maxPlayers', e.target.value)}
+                min="2"
+                max="8"
+                step="1"
+              />
             </div>
           </div>
 
           <div className="settings-note">
-            <p>⚙️ More settings available in lobby</p>
+            <p>⚙️ You can adjust these settings in the lobby</p>
           </div>
         </div>
 

@@ -9,6 +9,7 @@ import TopDownTable from './components/GameTable/TopDownTable';
 import Controls from './components/Controls/Controls';
 import ExitButton from './components/ExitButton/ExitButton';
 import ForceNextHandButton from './components/ForceNextHandButton/ForceNextHandButton';
+import PostGameScreen from './components/PostGameScreen/PostGameScreen';
 import './App.css';
 
 /**
@@ -41,6 +42,8 @@ function GameRouter() {
       return <CharacterSelection />;
     case 'lobby':
       return <Lobby />;
+    case 'postGame':
+      return <PostGameScreen />;
     case 'game':
       return (
         <div className="game-view">
