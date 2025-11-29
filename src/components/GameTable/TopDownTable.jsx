@@ -14,10 +14,24 @@ import './TopDownTable.css';
 const TopDownTable = () => {
   const { gameState, playerData, ROUND_STATES, handleNextHand } = useGame();
 
-  // Calculate chip stack size based on pot (1-4)
-  const chipStackSize = gameState.pot > 0
-    ? Math.min(4, Math.max(1, Math.floor(gameState.pot / 200) + 1))
-    : 0;
+  // Determine pot visual image
+  const getPotImage = () => {
+    const pot = gameState.pot || 0;
+    if (pot === 0) return null;
+
+    const players = gameState.players || [];
+    // Check if any player is All-In
+    const anyAllIn = players.some(p => p.allIn);
+    if (anyAllIn) return '/assets/chips/vbigpile.png';
+
+    // Thresholds for pot size
+    if (pot < 500) return '/assets/chips/smallpile.png';
+    if (pot < 1500) return '/assets/chips/medpile.png';
+    if (pot < 3000) return '/assets/chips/bigpile.png';
+    return '/assets/chips/vbigpile.png';
+  };
+
+  const potImage = getPotImage();
 
   // Auto-advance to next hand after showdown
   useEffect(() => {
@@ -115,8 +129,17 @@ const TopDownTable = () => {
                   />
                 </div>
                 <div className="pot-chips-visual">
-                  {chipStackSize > 0 && (
-                    <Chip color="red" stackSize={chipStackSize} scale={0.8} />
+                  {potImage && (
+                    <img
+                      src={potImage}
+                      alt="Pot Chips"
+                      style={{
+                        width: '128px',
+                        height: 'auto',
+                        imageRendering: 'pixelated',
+                        filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))'
+                      }}
+                    />
                   )}
                 </div>
               </div>
