@@ -73,7 +73,8 @@
 /* Community cards in center */
 .community-cards-center {
   position: absolute;
-  top: 50%;
+  top: 55%;
+  /* Moved down slightly */
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
@@ -436,6 +437,33 @@
     top: -20px;
     right: -20px;
   }
+}
+
+/* Table Decorations */
+.table-decorations {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.deck-placeholder {
+  position: absolute;
+  top: 20%;
+  /* Moved up to 20% */
+  left: 40%;
+  transform: translate(-50%, -50%);
+}
+
+.pot-chips-visual {
+  position: absolute;
+  top: 20%;
+  /* Moved up to 20% */
+  left: 60%;
+  transform: translate(-50%, -50%);
 }
 
 /* Sidebar Styles */

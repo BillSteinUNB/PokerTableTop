@@ -3,6 +3,8 @@ import { useGame } from '../../context/GameContextMultiplayer';
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar';
 import Card from '../Card/Card';
 import Controls from '../Controls/Controls';
+import Chip from '../Chip/Chip';
+import { CARD_SPRITE_CONFIG } from '../../utils/spriteConfig';
 import './TopDownTable.css';
 
 /**
@@ -12,7 +14,11 @@ import './TopDownTable.css';
 const TopDownTable = () => {
   const { gameState, playerData, ROUND_STATES, handleNextHand } = useGame();
 
-  // Position players around the table (8 positions max)
+  // Calculate chip stack size based on pot (1-4)
+  const chipStackSize = gameState.pot > 0
+    ? Math.min(4, Math.max(1, Math.floor(gameState.pot / 200) + 1))
+    : 0;
+
   // Position players around the table based on total count and user's position
   const getPlayerPosition = (index, totalPlayers) => {
     // Find the current user's index to rotate the table
@@ -92,10 +98,30 @@ const TopDownTable = () => {
           <div className="poker-table-top">
             {/* Table felt */}
             <div className="table-felt-top">
+
+              {/* Table Decorations (Deck & Chips) */}
+              <div className="table-decorations">
+                <div className="deck-placeholder">
+                  <img
+                    src="/assets/cards/cardpile.png"
+                    alt="Deck"
+                    style={{
+                      width: `${CARD_SPRITE_CONFIG.cardWidth * 0.4}px`,
+                      height: `${CARD_SPRITE_CONFIG.cardHeight * 0.4}px`,
+                      imageRendering: 'pixelated',
+                      display: 'block'
+                    }}
+                  />
+                </div>
+                <div className="pot-chips-visual">
+                  {chipStackSize > 0 && (
+                    <Chip color="red" stackSize={chipStackSize} scale={0.8} />
+                  )}
+                </div>
+              </div>
+
               {/* Community cards in center */}
               <div className="community-cards-center">
-                {/* Pot display removed - moved to sidebar */}
-
                 <div className="community-cards-row">
                   {communityCards.length > 0 ? (
                     communityCards.map((card, index) => (
@@ -135,9 +161,6 @@ const TopDownTable = () => {
                       } ${isFolded ? 'folded' : ''} ${isAllIn ? 'all-in' : ''}`}
                   >
 
-
-                    {/* Dealer button removed as requested */}
-
                     {/* Player's cards - only show for current player */}
                     {!isFolded && isCurrentPlayer && player.hand && player.hand.length > 0 && (
                       <div className="seat-cards" style={{ marginBottom: '8px', marginTop: 0 }}>
@@ -164,8 +187,6 @@ const TopDownTable = () => {
                       {isFolded && <div className="folded-badge">FOLDED</div>}
                     </div>
 
-                    {/* Current bet removed as requested */}
-
                     {/* Active turn indicator */}
                     {gameState.currentPlayerIndex === index && !isFolded && !isAllIn && (
                       <div className="turn-arrow">▼</div>
@@ -176,7 +197,6 @@ const TopDownTable = () => {
             </div>
           </div>
 
-          {/* Game status message */}
           {/* Game status message - Only show for important events */}
           {(lastAction?.type === 'showdown' || lastAction?.type === 'error') && (
             <div className="game-status-bar">
