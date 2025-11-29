@@ -51,7 +51,7 @@ const PlayerAvatar = ({ avatarId = 0, name, scale = 1, showName = true }) => {
         alt={name || `Avatar ${avatarId}`}
         className="avatar-sprite"
         style={{
-          width: `${64 * scale}px`,
+          width: 'auto',
           height: `${64 * scale}px`,
           imageRendering: 'pixelated',
           display: 'block'
