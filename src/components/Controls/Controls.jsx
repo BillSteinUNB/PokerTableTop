@@ -87,6 +87,9 @@ const Controls = () => {
     );
   }
 
+  // Determine if All-In is effectively a Call
+  const isCallAllIn = callAmount >= (currentPlayer?.chips || 0);
+
   return (
     <div className="controls-sidebar-content">
       <div className="sidebar-header">
@@ -157,7 +160,7 @@ const Controls = () => {
 
         {validActions.includes('all-in') && (
           <button className="action-btn btn-all-in" onClick={() => handleAction('all-in')}>
-            ALL IN
+            {isCallAllIn ? 'CALL ALL-IN' : 'ALL IN'}
           </button>
         )}
       </div>

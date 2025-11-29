@@ -114,7 +114,7 @@ export function startNewHand(gameState) {
   const smallBlindPos = (dealerPosition + 1) % players.length;
   const bigBlindPos = (dealerPosition + 2) % players.length;
 
-  // Find first player after big blind (or dealer in heads-up)
+  // Find first player to act (first active player after big blind (or dealer in heads-up)
   let firstToAct;
   if (numActivePlayers === 2) {
     // In heads-up, dealer acts first pre-flop
@@ -542,10 +542,8 @@ export function getValidActions(gameState) {
   // Can check if no bet to call
   if (callAmount === 0) {
     actions.push('check');
-  } else if (callAmount >= player.chips) {
-    // If calling would use all chips, it's an all-in
-    actions.push('all-in');
   } else {
+    // Always allow call if there is a bet (even if it puts you all-in)
     actions.push('call');
   }
 
@@ -554,8 +552,9 @@ export function getValidActions(gameState) {
     actions.push('raise');
   }
 
-  // Can always go all-in if you have chips
-  if (player.chips > 0 && callAmount < player.chips) {
+  // Can go all-in if you have chips and calling isn't already all-in
+  // (If calling IS all-in, 'call' covers it, but we can keep 'all-in' for clarity or shoving)
+  if (player.chips > callAmount) {
     actions.push('all-in');
   }
 
