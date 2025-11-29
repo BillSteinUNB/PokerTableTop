@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useGame } from '../../context/GameContextMultiplayer';
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar';
 import Card from '../Card/Card';
@@ -14,69 +14,133 @@ import './TopDownTable.css';
 const TopDownTable = () => {
   const { gameState, playerData, ROUND_STATES, handleNextHand } = useGame();
 
-  // Determine pot visual image
-  const getPotImage = () => {
+  // Animation state
+  const [flyingCards, setFlyingCards] = useState([]);
+  const [cardsDealt, setCardsDealt] = useState(true);
+  const feltRef = useRef(null);
+  const deckRef = useRef(null);
+  const seatRefs = useRef({});
+
+  // Determine pot visual image and size
+  const getPotVisual = () => {
     const pot = gameState.pot || 0;
     if (pot === 0) return null;
 
     const players = gameState.players || [];
-    // Check if any player is All-In
     const anyAllIn = players.some(p => p.allIn);
-    if (anyAllIn) return '/assets/chips/vbigpile.png';
+    const baseSize = 128;
 
-    // Thresholds for pot size
-    if (pot < 500) return '/assets/chips/smallpile.png';
-    if (pot < 1500) return '/assets/chips/medpile.png';
-    if (pot < 3000) return '/assets/chips/bigpile.png';
-    return '/assets/chips/vbigpile.png';
+    if (anyAllIn) return { src: '/assets/chips/vbigpile.png', width: baseSize * 1.25 };
+
+    if (pot < 500) return { src: '/assets/chips/smallpile.png', width: baseSize };
+    if (pot < 1500) return { src: '/assets/chips/medpile.png', width: baseSize };
+    if (pot < 3000) return { src: '/assets/chips/bigpile.png', width: baseSize * 1.1 };
+
+    return { src: '/assets/chips/vbigpile.png', width: baseSize * 1.25 };
   };
 
-  const potImage = getPotImage();
+  const potVisual = getPotVisual();
 
   // Auto-advance to next hand after showdown
   useEffect(() => {
     if (gameState.roundState === ROUND_STATES.SHOWDOWN) {
       const timer = setTimeout(() => {
         handleNextHand();
-      }, 4000); // 4 seconds delay to see results
+      }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [gameState.roundState, handleNextHand]);
+  }, [gameState.roundState, handleNextHand, ROUND_STATES.SHOWDOWN]);
+
+  // Trigger deal animation on new hand
+  useEffect(() => {
+    if (gameState.lastAction?.type === 'new-hand') {
+      runDealAnimation();
+    }
+  }, [gameState.lastAction]);
+
+  const runDealAnimation = () => {
+    if (!feltRef.current || !deckRef.current) return;
+
+    setCardsDealt(false);
+    setFlyingCards([]);
+
+    const feltRect = feltRef.current.getBoundingClientRect();
+    const deckRect = deckRef.current.getBoundingClientRect();
+
+    // Calculate deck position relative to felt
+    const startX = deckRect.left - feltRect.left + (deckRect.width / 2);
+    const startY = deckRect.top - feltRect.top + (deckRect.height / 2);
+
+    const newFlyingCards = [];
+    const players = gameState.players || [];
+    const dealerPos = gameState.dealerPosition || 0;
+
+    let cardCount = 0;
+
+    // Deal 2 rounds (2 cards per player)
+    for (let round = 0; round < 2; round++) {
+      for (let i = 0; i < players.length; i++) {
+        const playerIndex = (dealerPos + 1 + i) % players.length;
+        const player = players[playerIndex];
+
+        if (player.folded) continue;
+
+        const seatEl = seatRefs.current[playerIndex];
+        if (!seatEl) continue;
+
+        const seatRect = seatEl.getBoundingClientRect();
+        const targetX = (seatRect.left - feltRect.left) + (seatRect.width / 2);
+        const targetY = (seatRect.top - feltRect.top) + (seatRect.height / 2);
+
+        const delay = cardCount * 150;
+
+        newFlyingCards.push({
+          id: `card-${round}-${playerIndex}-${cardCount}`,
+          startX,
+          startY,
+          targetX,
+          targetY,
+          delay,
+          duration: 400
+        });
+
+        cardCount++;
+      }
+    }
+
+    setFlyingCards(newFlyingCards);
+
+    const totalDuration = (cardCount * 150) + 400;
+    setTimeout(() => {
+      setFlyingCards([]);
+      setCardsDealt(true);
+    }, totalDuration);
+  };
 
   // Position players around the table based on total count and user's position
   const getPlayerPosition = (index, totalPlayers) => {
-    // Find the current user's index to rotate the table
     const myIndex = players.findIndex(p => p.name === playerData.name);
     const baseIndex = myIndex === -1 ? 0 : myIndex;
-
-    // Calculate relative index (0 is always the current user)
     const relativeIndex = (index - baseIndex + totalPlayers) % totalPlayers;
 
     let positionClass = 'position-bottom';
 
-    // Define layouts based on total player count as requested
     if (totalPlayers === 2) {
-      // 2 Players: Bottom, Top
       const map = ['position-bottom', 'position-top'];
       positionClass = map[relativeIndex];
     } else if (totalPlayers === 3) {
-      // 3 Players: Bottom, Top, Left
       const map = ['position-bottom', 'position-top', 'position-left'];
       positionClass = map[relativeIndex];
     } else if (totalPlayers === 4) {
-      // 4 Players: Bottom, Top, Left, Right
       const map = ['position-bottom', 'position-top', 'position-left', 'position-right'];
       positionClass = map[relativeIndex];
     } else if (totalPlayers === 5) {
-      // 5 Players: Add Top-Left
       const map = ['position-bottom', 'position-top', 'position-left', 'position-right', 'position-top-left'];
       positionClass = map[relativeIndex];
     } else if (totalPlayers === 6) {
-      // 6 Players: Add Top-Right
       const map = ['position-bottom', 'position-top', 'position-left', 'position-right', 'position-top-left', 'position-top-right'];
       positionClass = map[relativeIndex];
     } else {
-      // 7+ Players: Fill all diagonals
       const map = [
         'position-bottom',
         'position-top',
@@ -112,11 +176,11 @@ const TopDownTable = () => {
           {/* Poker table surface */}
           <div className="poker-table-top">
             {/* Table felt */}
-            <div className="table-felt-top">
+            <div className="table-felt-top" ref={feltRef}>
 
               {/* Table Decorations (Deck & Chips) */}
               <div className="table-decorations">
-                <div className="deck-placeholder">
+                <div className="deck-placeholder" ref={deckRef}>
                   <img
                     src="/assets/cards/cardpile.png"
                     alt="Deck"
@@ -129,12 +193,12 @@ const TopDownTable = () => {
                   />
                 </div>
                 <div className="pot-chips-visual">
-                  {potImage && (
+                  {potVisual && (
                     <img
-                      src={potImage}
+                      src={potVisual.src}
                       alt="Pot Chips"
                       style={{
-                        width: '128px',
+                        width: `${potVisual.width}px`,
                         height: 'auto',
                         imageRendering: 'pixelated',
                         filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))'
@@ -143,6 +207,27 @@ const TopDownTable = () => {
                   )}
                 </div>
               </div>
+
+              {/* Flying Cards Animation */}
+              {flyingCards.map((card) => (
+                <div
+                  key={card.id}
+                  className="flying-card"
+                  style={{
+                    position: 'absolute',
+                    left: `${card.startX}px`,
+                    top: `${card.startY}px`,
+                    zIndex: 100,
+                    animation: `flyCard ${card.duration}ms ease-out forwards`,
+                    animationDelay: `${card.delay}ms`,
+                    '--target-x': `${card.targetX - card.startX}px`,
+                    '--target-y': `${card.targetY - card.startY}px`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                >
+                  <Card faceDown scale={0.3} />
+                </div>
+              ))}
 
               {/* Community cards in center */}
               <div className="community-cards-center">
@@ -183,12 +268,13 @@ const TopDownTable = () => {
                 return (
                   <div
                     key={index}
+                    ref={el => seatRefs.current[index] = el}
                     className={`player-seat ${position.class} ${isCurrentPlayer ? 'current-player' : ''} ${gameState.currentPlayerIndex === index ? 'active-turn' : ''
                       } ${isFolded ? 'folded' : ''} ${isAllIn ? 'all-in' : ''}`}
                   >
 
-                    {/* Player's cards - only show for current player */}
-                    {!isFolded && isCurrentPlayer && player.hand && player.hand.length > 0 && (
+                    {/* Player's cards - only show for current player and after dealt */}
+                    {!isFolded && isCurrentPlayer && player.hand && player.hand.length > 0 && cardsDealt && (
                       <div className="seat-cards" style={{ marginBottom: '8px', marginTop: 0 }}>
                         {player.hand.map((card, cardIndex) => (
                           <Card
