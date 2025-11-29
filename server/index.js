@@ -7,15 +7,24 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import crypto from 'crypto';
 import { GameEngine } from './gameEngine.js';
 
 const app = express();
 app.use(cors());
 
 const httpServer = createServer(app);
+
+// Configure allowed origins for CORS
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  process.env.CLIENT_URL, // Production client URL
+].filter(Boolean); // Remove undefined values
+
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -26,16 +35,69 @@ const io = new Server(httpServer, {
 const lobbies = new Map();
 const gameEngines = new Map();
 
+// Store session tokens for reconnection authentication
+const sessionTokens = new Map(); // playerId -> { token, lobbyCode, expiresAt }
+
+// Rate limiting: track requests per socket
+const rateLimits = new Map(); // socketId -> { count, resetAt }
+
 /**
  * Generate a unique 6-character lobby code
  */
 function generateLobbyCode() {
   let code;
+  let attempts = 0;
   do {
     code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    attempts++;
+    if (attempts > 1000) {
+      throw new Error('Unable to generate unique lobby code');
+    }
   } while (lobbies.has(code));
   return code;
 }
+
+/**
+ * Generate a secure session token for reconnection
+ */
+function generateSessionToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+/**
+ * Rate limiting check - allows 10 requests per second per socket
+ */
+function checkRateLimit(socketId) {
+  const now = Date.now();
+  const limit = rateLimits.get(socketId);
+
+  if (!limit || now > limit.resetAt) {
+    rateLimits.set(socketId, { count: 1, resetAt: now + 1000 });
+    return true;
+  }
+
+  if (limit.count >= 10) {
+    return false;
+  }
+
+  limit.count++;
+  return true;
+}
+
+/**
+ * Clean up expired session tokens
+ */
+function cleanupExpiredTokens() {
+  const now = Date.now();
+  for (const [playerId, session] of sessionTokens.entries()) {
+    if (now > session.expiresAt) {
+      sessionTokens.delete(playerId);
+    }
+  }
+}
+
+// Clean up expired tokens every 5 minutes
+setInterval(cleanupExpiredTokens, 5 * 60 * 1000);
 
 /**
  * Broadcast game state to all players in a lobby
@@ -146,6 +208,16 @@ function broadcastLobbyState(lobbyCode) {
 io.on('connection', (socket) => {
   console.log(`[${new Date().toLocaleTimeString()}] Player connected: ${socket.id}`);
 
+  // Middleware: Rate limiting on all socket events
+  socket.use((packet, next) => {
+    if (!checkRateLimit(socket.id)) {
+      console.log(`[${new Date().toLocaleTimeString()}] Rate limit exceeded for ${socket.id}`);
+      next(new Error('Rate limit exceeded. Please slow down.'));
+      return;
+    }
+    next();
+  });
+
   /**
    * Create a new lobby
    */
@@ -166,14 +238,25 @@ io.on('connection', (socket) => {
 
       const lobbyCode = generateLobbyCode();
 
+      const playerId = socket.id;
+      const sessionToken = generateSessionToken();
+
+      // Store session token (expires in 1 hour)
+      sessionTokens.set(playerId, {
+        token: sessionToken,
+        lobbyCode: lobbyCode,
+        expiresAt: Date.now() + 60 * 60 * 1000
+      });
+
       const lobby = {
         code: lobbyCode,
         hostId: socket.id,
         players: [{
           ...playerData,
           name: sanitizedName,
-          id: socket.id,
-          socketId: socket.id
+          id: playerId,
+          socketId: socket.id,
+          sessionToken: sessionToken
         }],
         settings: {
           smallBlind: 5,
@@ -190,9 +273,9 @@ io.on('connection', (socket) => {
       socket.join(lobbyCode);
       socket.lobbyCode = lobbyCode;
 
-      console.log(`[${new Date().toLocaleTimeString()}] Lobby created: ${lobbyCode} by ${playerData.name} (${socket.id})`);
+      console.log(`[${new Date().toLocaleTimeString()}] Lobby created: ${lobbyCode} by ${sanitizedName} (${socket.id})`);
 
-      callback({ success: true, lobbyCode });
+      callback({ success: true, lobbyCode, sessionToken });
       broadcastLobbyState(lobbyCode);
     } catch (error) {
       console.error(`[${new Date().toLocaleTimeString()}] Error creating lobby:`, error);
@@ -271,19 +354,30 @@ io.on('connection', (socket) => {
         return;
       }
 
+      const playerId = socket.id;
+      const sessionToken = generateSessionToken();
+
+      // Store session token (expires in 1 hour)
+      sessionTokens.set(playerId, {
+        token: sessionToken,
+        lobbyCode: lobbyCode,
+        expiresAt: Date.now() + 60 * 60 * 1000
+      });
+
       lobby.players.push({
         ...playerData,
         name: sanitizedName,
-        id: socket.id,
-        socketId: socket.id
+        id: playerId,
+        socketId: socket.id,
+        sessionToken: sessionToken
       });
 
       socket.join(lobbyCode);
       socket.lobbyCode = lobbyCode;
 
-      console.log(`[${new Date().toLocaleTimeString()}] ${playerData.name} (${socket.id}) joined lobby: ${lobbyCode}`);
+      console.log(`[${new Date().toLocaleTimeString()}] ${sanitizedName} (${socket.id}) joined lobby: ${lobbyCode}`);
 
-      callback({ success: true, lobbyCode });
+      callback({ success: true, lobbyCode, sessionToken });
       broadcastLobbyState(lobbyCode);
     } catch (error) {
       console.error(`[${new Date().toLocaleTimeString()}] Error joining lobby:`, error);
@@ -527,13 +621,18 @@ io.on('connection', (socket) => {
             lobby.players = lobby.players.filter(p => p.socketId !== socket.id);
 
             if (lobby.players.length === 0) {
-              lobbies.delete(lobbyCode);
-              gameEngines.delete(lobbyCode);
+              // Clean up session tokens for this lobby
+              lobby.players.forEach(p => {
+                sessionTokens.delete(p.id);
+              });
 
               // Clear any timeouts
               if (lobby.actionTimeout) {
                 clearTimeout(lobby.actionTimeout);
               }
+
+              lobbies.delete(lobbyCode);
+              gameEngines.delete(lobbyCode);
             } else {
               if (lobby.hostId === socket.id) {
                 lobby.hostId = lobby.players[0].socketId;
@@ -547,11 +646,34 @@ io.on('connection', (socket) => {
   });
 
   /**
-   * Reconnect to lobby
+   * Reconnect to lobby with session token authentication
    */
-  socket.on('reconnect', ({ lobbyCode, playerId }, callback) => {
-    const lobby = lobbies.get(lobbyCode);
+  socket.on('reconnect', ({ lobbyCode, playerId, sessionToken }, callback) => {
+    // Validate session token
+    const storedSession = sessionTokens.get(playerId);
 
+    if (!storedSession) {
+      callback({ success: false, error: 'Session expired or invalid' });
+      return;
+    }
+
+    if (storedSession.token !== sessionToken) {
+      callback({ success: false, error: 'Invalid session token' });
+      return;
+    }
+
+    if (Date.now() > storedSession.expiresAt) {
+      sessionTokens.delete(playerId);
+      callback({ success: false, error: 'Session expired' });
+      return;
+    }
+
+    if (storedSession.lobbyCode !== lobbyCode) {
+      callback({ success: false, error: 'Lobby mismatch' });
+      return;
+    }
+
+    const lobby = lobbies.get(lobbyCode);
     if (!lobby) {
       callback({ success: false, error: 'Lobby not found' });
       return;
@@ -563,14 +685,23 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Update socket ID
+    // Verify session token matches player's stored token
+    if (player.sessionToken !== sessionToken) {
+      callback({ success: false, error: 'Token mismatch' });
+      return;
+    }
+
+    // Update socket ID and mark as reconnected
     player.socketId = socket.id;
     player.disconnected = false;
 
     socket.join(lobbyCode);
     socket.lobbyCode = lobbyCode;
 
-    console.log(`[${new Date().toLocaleTimeString()}] ${player.name} reconnected to ${lobbyCode}`);
+    // Extend session expiration
+    storedSession.expiresAt = Date.now() + 60 * 60 * 1000;
+
+    console.log(`[${new Date().toLocaleTimeString()}] ${player.name} reconnected to ${lobbyCode} (authenticated)`);
 
     callback({ success: true });
 
