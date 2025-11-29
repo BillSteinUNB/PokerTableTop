@@ -301,10 +301,11 @@ export function processPlayerAction(gameState, action, amount = 0) {
         hasActed: true
       };
 
-      // If all-in raise, reset hasActed for other players
+      // Calculate new bet after all-in
       const newAllInBet = player.currentBet + allInAmount;
-      const allInRaiseSize = newAllInBet - updatedCurrentBet;
-      
+      let allInRaiseSize = 0;
+
+      // If all-in is a raise (increases current bet), reset hasActed for other players
       if (newAllInBet > currentBet) {
         updatedPlayers = updatedPlayers.map((p, idx) => {
           if (idx !== currentPlayerIndex && !p.folded && !p.allIn) {
@@ -312,6 +313,7 @@ export function processPlayerAction(gameState, action, amount = 0) {
           }
           return p;
         });
+        allInRaiseSize = newAllInBet - updatedCurrentBet;
         updatedCurrentBet = newAllInBet;
       }
 
@@ -668,15 +670,22 @@ export function moveToNextHand(gameState) {
  */
 export function getValidActions(gameState) {
   const { players, currentPlayerIndex, currentBet, settings, lastRaiseAmount = 0 } = gameState;
-  const player = players[currentPlayerIndex];
+  const player = players?.[currentPlayerIndex];
 
+  // Validate player exists and is active
   if (!player || player.folded || player.allIn) {
+    console.log('[getValidActions] No valid player or already acted:', {
+      player: player?.name,
+      folded: player?.folded,
+      allIn: player?.allIn
+    });
     return [];
   }
 
   const actions = ['fold'];
-
   const callAmount = currentBet - player.currentBet;
+
+  console.log('[getValidActions] Player:', player.name, 'Chips:', player.chips, 'Current bet:', player.currentBet, 'Call amount:', callAmount);
 
   // Can check if no bet to call
   if (callAmount === 0) {
@@ -692,15 +701,17 @@ export function getValidActions(gameState) {
   const chipsNeededForMinRaise = minRaiseTotal - player.currentBet;
 
   // Can raise if player has enough chips to meet minimum raise
-  if (player.chips >= chipsNeededForMinRaise) {
+  // Player can raise if they have more chips than just calling
+  if (player.chips > callAmount && player.chips >= chipsNeededForMinRaise) {
     actions.push('raise');
   }
 
-  // Can go all-in if you have chips (always available if you have chips)
+  // Can go all-in if you have chips and you haven't called yet, OR if calling would put you all-in
   if (player.chips > 0) {
     actions.push('all-in');
   }
 
+  console.log('[getValidActions] Valid actions:', actions);
   return actions;
 }
 
