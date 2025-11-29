@@ -249,10 +249,14 @@ export class GameEngine {
 
   advanceToNextPlayer() {
     let nextIndex = (this.currentPlayerIndex + 1) % this.players.length;
+    let attempts = 0;
 
     while (this.players[nextIndex].folded || this.players[nextIndex].allIn) {
       nextIndex = (nextIndex + 1) % this.players.length;
-      if (nextIndex === this.currentPlayerIndex) {
+      attempts++;
+
+      // Safety check: if we've checked everyone or looped back to current player
+      if (nextIndex === this.currentPlayerIndex || attempts >= this.players.length) {
         this.advanceToNextRound();
         return;
       }
@@ -304,10 +308,26 @@ export class GameEngine {
         return;
     }
 
+    // Check if any player can act (not folded and not all-in)
+    const playersCanAct = this.players.filter(p => !p.folded && !p.allIn).length;
+
+    if (playersCanAct === 0) {
+      // All remaining players are all-in, recursively advance to next round
+      this.advanceToNextRound();
+      return;
+    }
+
     // Find first player to act
     let firstToAct = (this.dealerPosition + 1) % this.players.length;
+    let attempts = 0;
     while (this.players[firstToAct].folded || this.players[firstToAct].allIn) {
       firstToAct = (firstToAct + 1) % this.players.length;
+      attempts++;
+      // Safety check to prevent infinite loop
+      if (attempts >= this.players.length) {
+        this.advanceToNextRound();
+        return;
+      }
     }
 
     this.currentPlayerIndex = firstToAct;

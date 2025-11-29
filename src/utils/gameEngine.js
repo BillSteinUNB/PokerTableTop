@@ -496,10 +496,24 @@ function advanceToNextRound(gameState) {
       return advanceToNextRound(intermediateState);
   }
 
-  // Find first player to act (first active player after dealer)
-  let firstToAct = (gameState.dealerPosition + 1) % players.length;
-  while (resetPlayers[firstToAct].folded || resetPlayers[firstToAct].allIn) {
-    firstToAct = (firstToAct + 1) % players.length;
+  // Find first player to act
+  // In heads-up, dealer acts first on all post-flop streets
+  // In multi-way, first active player after dealer acts first
+  const activePlayers = resetPlayers.filter(p => !p.folded && !p.allIn);
+  let firstToAct;
+
+  if (activePlayers.length === 2) {
+    // Heads-up: dealer acts first post-flop
+    firstToAct = gameState.dealerPosition;
+    while (resetPlayers[firstToAct].folded || resetPlayers[firstToAct].allIn) {
+      firstToAct = (firstToAct + 1) % players.length;
+    }
+  } else {
+    // Multi-way: first active player after dealer
+    firstToAct = (gameState.dealerPosition + 1) % players.length;
+    while (resetPlayers[firstToAct].folded || resetPlayers[firstToAct].allIn) {
+      firstToAct = (firstToAct + 1) % players.length;
+    }
   }
 
   return {
