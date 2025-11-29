@@ -5,6 +5,7 @@ import Card from '../Card/Card';
 import Controls from '../Controls/Controls';
 import Chip from '../Chip/Chip';
 import ShowdownReveal from '../ShowdownReveal/ShowdownReveal';
+import PlayerBetChips from '../PlayerBetChips/PlayerBetChips';
 import { CARD_SPRITE_CONFIG } from '../../utils/spriteConfig';
 import './TopDownTable.css';
 
@@ -26,25 +27,7 @@ const TopDownTable = () => {
   const seatRefs = useRef({});
   const communityRef = useRef(null);
 
-  // Determine pot visual image and size
-  const getPotVisual = () => {
-    const pot = gameState.pot || 0;
-    if (pot === 0) return null;
-
-    const players = gameState.players || [];
-    const anyAllIn = players.some(p => p.allIn);
-    const baseSize = 128;
-
-    if (anyAllIn) return { src: '/assets/chips/vbigpile.png', width: baseSize * 1.25 };
-
-    if (pot < 500) return { src: '/assets/chips/smallpile.png', width: baseSize };
-    if (pot < 1500) return { src: '/assets/chips/medpile.png', width: baseSize };
-    if (pot < 3000) return { src: '/assets/chips/bigpile.png', width: baseSize * 1.1 };
-
-    return { src: '/assets/chips/vbigpile.png', width: baseSize * 1.25 };
-  };
-
-  const potVisual = getPotVisual();
+  // Removed pot visual - now showing per-player bets instead
 
   // Show showdown reveal animation
   useEffect(() => {
@@ -340,6 +323,15 @@ const TopDownTable = () => {
                       />
                       {isAllIn && <div className="all-in-badge">ALL IN</div>}
                       {isFolded && <div className="folded-badge">FOLDED</div>}
+
+                      {/* Player's bet chips */}
+                      {!isFolded && player.currentBet > 0 && (
+                        <PlayerBetChips
+                          betAmount={player.currentBet}
+                          startingChips={gameState.settings?.startingChips || 1000}
+                          chipType={player.chipType || 'red'}
+                        />
+                      )}
                     </div>
 
                     {/* Active turn indicator */}

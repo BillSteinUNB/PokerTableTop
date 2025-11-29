@@ -141,6 +141,9 @@ export function startNewHand(gameState) {
   const smallBlindPos = (dealerPosition + 1) % players.length;
   const bigBlindPos = (dealerPosition + 2) % players.length;
 
+  // Track big blind position for live bet feature
+  const bigBlindPosition = bigBlindPos;
+
   // Find first player to act (first active player after big blind (or dealer in heads-up)
   let firstToAct;
   if (numActivePlayers === 2) {
@@ -187,6 +190,7 @@ export function startNewHand(gameState) {
     lastRaiseAmount: settings.bigBlind - settings.smallBlind,
     roundState: ROUND_STATES.PRE_FLOP,
     currentPlayerIndex: firstToAct,
+    bigBlindPosition: bigBlindPosition,
     bettingRoundComplete: false,
     lastAction: { type: 'new-hand', dealerPosition }
   };
@@ -242,21 +246,33 @@ export function processPlayerAction(gameState, action, amount = 0) {
       break;
 
     case 'call':
-      const callAmount = Math.min(currentBet - player.currentBet, player.chips);
+      const callAmount = currentBet - player.currentBet;
+
+      // Validate there's something to call
+      if (callAmount <= 0) {
+        return {
+          ...gameState,
+          lastAction: { type: 'error', message: 'Nothing to call - use check instead' }
+        };
+      }
+
+      // Calculate actual call amount (might be less if player doesn't have enough chips)
+      const actualCallAmount = Math.min(callAmount, player.chips);
+
       updatedPlayers[currentPlayerIndex] = {
         ...player,
-        chips: player.chips - callAmount,
-        currentBet: player.currentBet + callAmount,
-        totalBet: player.totalBet + callAmount,
-        allIn: player.chips - callAmount === 0,
+        chips: player.chips - actualCallAmount,
+        currentBet: player.currentBet + actualCallAmount,
+        totalBet: player.totalBet + actualCallAmount,
+        allIn: player.chips - actualCallAmount === 0,
         hasActed: true
       };
-      updatedPot += callAmount;
+      updatedPot += actualCallAmount;
       actionTaken = {
         type: 'call',
         playerIndex: currentPlayerIndex,
         playerName: player.name,
-        amount: callAmount
+        amount: actualCallAmount
       };
       break;
 
@@ -274,10 +290,12 @@ export function processPlayerAction(gameState, action, amount = 0) {
       }
       
       // 2. Must meet minimum raise (current bet + last raise size, or current bet + big blind)
+      // Exception: all-in for less than minimum is allowed
       const minRaiseSize = gameState.lastRaiseAmount > 0 ? gameState.lastRaiseAmount : gameState.settings.bigBlind;
       const minRaiseTotal = currentBet + minRaiseSize;
-      
-      if (amount < minRaiseTotal) {
+      const isAllIn = amount === player.chips + player.currentBet;
+
+      if (amount < minRaiseTotal && !isAllIn) {
         return {
           ...gameState,
           lastAction: { type: 'error', message: `Minimum raise is ${minRaiseTotal}` }
@@ -390,7 +408,7 @@ export function processPlayerAction(gameState, action, amount = 0) {
  * @returns {boolean} True if betting round is complete
  */
 function isBettingRoundComplete(gameState) {
-  const { players, currentBet } = gameState;
+  const { players, currentBet, roundState, bigBlindPosition } = gameState;
 
   const activePlayers = players.filter(p => !p.folded);
 
@@ -399,11 +417,24 @@ function isBettingRoundComplete(gameState) {
     return true;
   }
 
+  // Special case: Big blind live bet in pre-flop
+  // If we're in pre-flop and big blind hasn't acted yet, round is not complete
+  if (roundState === ROUND_STATES.PRE_FLOP && bigBlindPosition !== undefined) {
+    const bigBlindPlayer = players[bigBlindPosition];
+    if (bigBlindPlayer && !bigBlindPlayer.folded && !bigBlindPlayer.allIn && !bigBlindPlayer.hasActed) {
+      return false;
+    }
+  }
+
   // All active players have acted and matched current bet (or are all-in)
+  // This ensures:
+  // 1. All-in players are considered complete (they can't act further)
+  // 2. Players who haven't acted yet mean round is incomplete
+  // 3. Players who have acted must match the current bet (or be all-in with less)
   return activePlayers.every(p => {
-    if (p.allIn) return true;
-    if (!p.hasActed) return false;
-    return p.currentBet === currentBet;
+    if (p.allIn) return true; // All-in players are done regardless of bet amount
+    if (!p.hasActed) return false; // Player still needs to act
+    return p.currentBet === currentBet; // Player must match current bet
   });
 }
 
@@ -417,7 +448,7 @@ function advanceToNextPlayer(gameState) {
 
   // First, check if there are ANY players who can still act
   const playersWhoCanAct = players.filter(p => !p.folded && !p.allIn);
-  
+
   if (playersWhoCanAct.length === 0) {
     // No one can act - advance to next round immediately
     console.log('[advanceToNextPlayer] No players can act, advancing to next round');
@@ -431,6 +462,13 @@ function advanceToNextPlayer(gameState) {
       console.log('[advanceToNextPlayer] Only one player can act and has acted, advancing to next round');
       return advanceToNextRound(gameState);
     }
+  }
+
+  // Double-check if betting round is already complete before advancing
+  // This prevents advancing to a player when the round should end
+  if (isBettingRoundComplete(gameState)) {
+    console.log('[advanceToNextPlayer] Betting round complete, advancing to next round');
+    return advanceToNextRound(gameState);
   }
 
   // Find next active player who can act
@@ -474,9 +512,6 @@ function advanceToNextRound(gameState) {
     currentBet: 0,
     hasActed: false
   }));
-
-  // Reset last raise amount for new round
-  gameState.lastRaiseAmount = 0;
 
   let newRoundState;
   let newCommunityCards = [...communityCards];
@@ -611,8 +646,10 @@ function advanceToNextRound(gameState) {
     deck: newDeck,
     communityCards: newCommunityCards,
     currentBet: 0,
+    lastRaiseAmount: 0,
     roundState: newRoundState,
     currentPlayerIndex: firstToAct,
+    bigBlindPosition: undefined, // Clear big blind position after pre-flop
     bettingRoundComplete: false,
     lastAction: {
       type: 'deal-cards',

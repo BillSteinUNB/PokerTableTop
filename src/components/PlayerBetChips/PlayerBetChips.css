@@ -1,0 +1,57 @@
+.player-bet-chips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.bet-chip-stack {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bet-amount-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: #ffd700;
+    text-shadow:
+        1px 1px 0 #000,
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        2px 2px 4px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* Position adjustments for different seat positions */
+.player-seat.top .player-bet-chips,
+.player-seat.bottom .player-bet-chips {
+    flex-direction: row;
+}
+
+.player-seat.left .player-bet-chips,
+.player-seat.right .player-bet-chips {
+    flex-direction: column;
+}
+
+/* Animation for bet changes */
+@keyframes bet-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.bet-chip-stack.new-bet {
+    animation: bet-pulse 0.4s ease;
+}

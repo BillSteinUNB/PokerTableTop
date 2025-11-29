@@ -4,7 +4,7 @@
  */
 
 import { createDeck, shuffleDeck, dealCards, getRankValue } from './utils/deck.js';
-import { determineWinner } from './utils/handEvaluator.js';
+import { determineWinner, evaluateHand } from './utils/handEvaluator.js';
 
 const ROUND_STATES = {
   WAITING: 'waiting',
@@ -192,14 +192,23 @@ export class GameEngine {
         break;
 
       case 'call':
-        const callAmount = Math.min(this.currentBet - player.currentBet, player.chips);
-        player.chips -= callAmount;
-        player.currentBet += callAmount;
-        player.totalBet += callAmount;
+        const callAmount = this.currentBet - player.currentBet;
+
+        // Validate there's something to call
+        if (callAmount <= 0) {
+          throw new Error('Nothing to call - use check instead');
+        }
+
+        // Calculate actual call amount (might be less if player doesn't have enough chips)
+        const actualCallAmount = Math.min(callAmount, player.chips);
+
+        player.chips -= actualCallAmount;
+        player.currentBet += actualCallAmount;
+        player.totalBet += actualCallAmount;
         player.allIn = player.chips === 0;
         player.hasActed = true;
-        this.pot += callAmount;
-        this.lastAction = { type: 'call', playerIndex: this.currentPlayerIndex, playerName: player.name, amount: callAmount };
+        this.pot += actualCallAmount;
+        this.lastAction = { type: 'call', playerIndex: this.currentPlayerIndex, playerName: player.name, amount: actualCallAmount };
         break;
 
       case 'bet':
@@ -250,10 +259,12 @@ export class GameEngine {
         }
 
         // 2. Must meet minimum raise (current bet + last raise size, or current bet + big blind)
+        // Exception: all-in for less than minimum is allowed
         const minRaiseSize = this.lastRaiseAmount > 0 ? this.lastRaiseAmount : this.settings.bigBlind;
         const minRaiseTotal = this.currentBet + minRaiseSize;
+        const isAllIn = amount === player.chips + player.currentBet;
 
-        if (amount < minRaiseTotal) {
+        if (amount < minRaiseTotal && !isAllIn) {
           throw new Error(`Minimum raise is ${minRaiseTotal}`);
         }
 
@@ -332,10 +343,15 @@ export class GameEngine {
       }
     }
 
+    // All active players have acted and matched current bet (or are all-in)
+    // This ensures:
+    // 1. All-in players are considered complete (they can't act further)
+    // 2. Players who haven't acted yet mean round is incomplete
+    // 3. Players who have acted must match the current bet (or be all-in with less)
     return activePlayers.every(p => {
-      if (p.allIn) return true;
-      if (!p.hasActed) return false;
-      return p.currentBet === this.currentBet;
+      if (p.allIn) return true; // All-in players are done regardless of bet amount
+      if (!p.hasActed) return false; // Player still needs to act
+      return p.currentBet === this.currentBet; // Player must match current bet
     });
   }
 
@@ -358,6 +374,14 @@ export class GameEngine {
         this.advanceToNextRound();
         return;
       }
+    }
+
+    // Double-check if betting round is already complete before advancing
+    // This prevents advancing to a player when the round should end
+    if (this.isBettingRoundComplete()) {
+      console.log('[advanceToNextPlayer] Betting round complete, advancing to next round');
+      this.advanceToNextRound();
+      return;
     }
 
     // Find next active player who can act

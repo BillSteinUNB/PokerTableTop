@@ -233,6 +233,12 @@ function resetLobbyForNewGame(lobbyCode, winnerData = null) {
     lobby.actionTimeout = null;
   }
 
+  // Clear showdown timeout
+  if (lobby.showdownTimeout) {
+    clearTimeout(lobby.showdownTimeout);
+    lobby.showdownTimeout = null;
+  }
+
   // Delete the game engine
   gameEngines.delete(lobbyCode);
 
@@ -627,7 +633,14 @@ io.on('connection', (socket) => {
       // If showdown, auto-advance after delay
       const newState = engine.getGameState();
       if (newState.roundState === 'showdown') {
-        setTimeout(() => {
+        // Prevent multiple showdown timers
+        if (lobby.showdownTimeout) {
+          clearTimeout(lobby.showdownTimeout);
+        }
+
+        lobby.showdownTimeout = setTimeout(() => {
+          lobby.showdownTimeout = null;
+
           engine.nextHand();
           const finalState = engine.getGameState();
 
@@ -740,20 +753,48 @@ io.on('connection', (socket) => {
 
     console.log(`[${new Date().toLocaleTimeString()}] Host forcing next hand in lobby ${lobbyCode}`);
 
+    // Clear any pending timeout for this lobby
+    if (lobby.actionTimeout) {
+      clearTimeout(lobby.actionTimeout);
+      lobby.actionTimeout = null;
+    }
+
     try {
       const gameState = engine.getGameState();
 
-      // Fold all players who haven't folded or gone all-in
+      // Safety: prevent force fold if already in showdown or hand complete
+      if (gameState.roundState === 'showdown' || gameState.roundState === 'hand-complete') {
+        callback({ success: false, error: 'Hand already complete' });
+        return;
+      }
+
+      // Keep track of original current player to restore context
+      const originalPlayerIndex = gameState.currentPlayerIndex;
+
+      // Build a list of players to fold (to avoid modifying during iteration)
+      const playersToFold = [];
       gameState.players.forEach((player, index) => {
         if (!player.folded && !player.allIn && player.chips > 0) {
-          console.log(`[${new Date().toLocaleTimeString()}] Force folding ${player.name}`);
-          // Set the current player to this player temporarily and fold them
-          engine.currentPlayerIndex = index;
-          try {
+          playersToFold.push(index);
+        }
+      });
+
+      // Fold each player using the proper game engine method
+      playersToFold.forEach(playerIndex => {
+        try {
+          const currentState = engine.getGameState();
+          // Only fold if they're still the current player or we need to advance to them
+          if (currentState.currentPlayerIndex === playerIndex) {
+            console.log(`[${new Date().toLocaleTimeString()}] Force folding ${currentState.players[playerIndex].name}`);
             engine.handlePlayerAction('fold', 0);
-          } catch (error) {
-            console.error(`[${new Date().toLocaleTimeString()}] Error force folding ${player.name}:`, error);
+          } else {
+            // Manually set the player to folded to avoid turn order issues
+            console.log(`[${new Date().toLocaleTimeString()}] Manually folding ${currentState.players[playerIndex].name}`);
+            currentState.players[playerIndex].folded = true;
+            currentState.players[playerIndex].hasActed = true;
           }
+        } catch (error) {
+          console.error(`[${new Date().toLocaleTimeString()}] Error force folding player at index ${playerIndex}:`, error);
         }
       });
 
@@ -766,6 +807,12 @@ io.on('connection', (socket) => {
       io.to(lobbyCode).emit('hostForcedNextHand', {
         message: 'Host skipped to next hand'
       });
+
+      // Check if we need to start timeout for next player or advance
+      const finalState = engine.getGameState();
+      if (finalState.roundState !== 'showdown' && finalState.roundState !== 'hand-complete') {
+        startActionTimeout(lobbyCode);
+      }
     } catch (error) {
       console.error(`[${new Date().toLocaleTimeString()}] Error forcing next hand:`, error);
       callback({ success: false, error: error.message });
