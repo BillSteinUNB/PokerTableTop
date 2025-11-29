@@ -110,7 +110,7 @@ const TopDownTable = () => {
                     )}
 
                     {/* Player character - full size */}
-                    <div className="seat-player-character">
+                    <div className="seat-player-character" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '128px', flexShrink: 0 }}>
                       <PlayerAvatar
                         avatarId={player.avatar}
                         name={player.name}

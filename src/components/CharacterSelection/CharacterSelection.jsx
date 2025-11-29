@@ -48,8 +48,9 @@ const CharacterSelection = () => {
       if (pendingLobbyCode) {
         // Join existing lobby
         console.log('[CharacterSelection] Joining lobby:', pendingLobbyCode, 'with player:', newPlayerData);
-        sessionStorage.removeItem('pendingLobbyCode');
         await joinLobby(pendingLobbyCode, true, newPlayerData); // true = multiplayer mode
+        // Only remove the code after successful join
+        sessionStorage.removeItem('pendingLobbyCode');
         navigateTo('lobby');
       } else {
         // Create new lobby
@@ -59,7 +60,19 @@ const CharacterSelection = () => {
       }
     } catch (error) {
       console.error('[CharacterSelection] Error:', error);
-      setNameError(`Failed: ${error.message}`);
+      const errorMsg = error.message || 'Unknown error';
+
+      // Provide user-friendly error messages
+      if (errorMsg.includes('already taken')) {
+        setNameError('⚠️ This name is already taken. Please choose a different name.');
+      } else if (errorMsg.includes('full')) {
+        setNameError('⚠️ This lobby is full. Cannot join.');
+      } else if (errorMsg.includes('not found')) {
+        setNameError('⚠️ Lobby not found. Please check the code.');
+      } else {
+        setNameError(`⚠️ ${errorMsg}`);
+      }
+      // Don't remove pendingLobbyCode on error - let user try again with different name
     }
   };
 

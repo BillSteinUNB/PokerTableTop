@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useGame } from '../../context/GameContextMultiplayer';
+import { CHARACTERS } from '../../data/gameData';
 import './Lobby.css';
 
 /**
@@ -59,25 +60,40 @@ const Lobby = () => {
             </div>
 
             <div className="players-list">
-              {players.map((player, index) => (
-                <div key={player.id || index} className="player-card">
-                  <div className="player-avatar">
-                    <span className="player-emoji">
-                      {['😎', '🤖', '🤠', '🏴‍☠️', '🥷', '🧙', '⚔️', '👽'][player.avatar || 0]}
-                    </span>
-                  </div>
-                  <div className="player-info">
-                    <div className="player-name">{player.name}</div>
-                    <div className="player-details">
-                      <span className="detail-item">Card: {player.cardColor}</span>
-                      <span className="detail-item">Chip: {player.chipType}</span>
+              {players.map((player, index) => {
+                // Find the character data for this player's avatar
+                const characterData = CHARACTERS.find(c => c.id === (player.avatar || 0)) || CHARACTERS[0];
+
+                return (
+                  <div key={player.id || index} className="player-card">
+                    <div className="player-avatar">
+                      <img
+                        src={characterData.imagePath}
+                        alt={characterData.name}
+                        className="player-avatar-image"
+                        onError={(e) => {
+                          // Fallback to emoji if image fails to load
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <span className="player-emoji" style={{ display: 'none' }}>
+                        {characterData.emoji}
+                      </span>
                     </div>
+                    <div className="player-info">
+                      <div className="player-name">{player.name}</div>
+                      <div className="player-details">
+                        <span className="detail-item">Card: {player.cardColor}</span>
+                        <span className="detail-item">Chip: {player.chipType}</span>
+                      </div>
+                    </div>
+                    {player.id === lobbyData.players?.[0]?.id && (
+                      <div className="player-badge">👑</div>
+                    )}
                   </div>
-                  {player.id === lobbyData.players?.[0]?.id && (
-                    <div className="player-badge">👑</div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
 
               {/* Empty slots */}
               {Array.from({ length: (lobbyData.settings?.maxPlayers || 8) - players.length }).map((_, index) => (
