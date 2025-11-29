@@ -92,6 +92,11 @@ const TopDownTable = () => {
 
   return (
     <div className="top-down-table">
+      {/* Left Sidebar - Controls */}
+      <div className="game-sidebar left">
+        <Controls />
+      </div>
+
       <div className="table-view">
         <div className="table-container">
           {/* Poker table surface */}
@@ -221,15 +226,12 @@ const TopDownTable = () => {
             </div>
           )}
 
-          {/* Game controls */}
-          {roundState !== ROUND_STATES.SHOWDOWN && roundState !== ROUND_STATES.WAITING && (
-            <Controls />
-          )}
+          {/* Controls removed from here */}
         </div>
       </div>
 
-      {/* Right Sidebar */}
-      <div className="game-sidebar">
+      {/* Right Sidebar - Info */}
+      <div className="game-sidebar right">
         <div className="sidebar-header">
           <h3>TABLE INFO</h3>
         </div>

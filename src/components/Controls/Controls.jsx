@@ -5,6 +5,7 @@ import './Controls.css';
 /**
  * Game Controls Component
  * Player action buttons and bet controls
+ * Rendered inside the Left Sidebar
  */
 const Controls = () => {
   const {
@@ -66,43 +67,54 @@ const Controls = () => {
 
   const maxBet = currentPlayer?.chips + currentPlayer?.currentBet || 1000;
 
+  // If not my turn, show waiting message
   if (!isMyTurn) {
-    return null;
+    return (
+      <div className="controls-sidebar-content">
+        <div className="sidebar-header">
+          <h3>ACTIONS</h3>
+        </div>
+        <div className="sidebar-message">
+          Waiting for turn...
+        </div>
+        <div className="sidebar-pot" style={{ marginTop: '20px' }}>
+          <div className="sidebar-label">YOUR CHIPS</div>
+          <div className="sidebar-value">
+            ${gameState.players?.find(p => p.name === playerData.name)?.chips || 0}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="controls-container">
-      {/* Bet slider section */}
+    <div className="controls-sidebar-content">
+      <div className="sidebar-header">
+        <h3>ACTIONS</h3>
+      </div>
+
+      {/* Player Info */}
+      <div className="sidebar-pot">
+        <div className="sidebar-label">YOUR CHIPS</div>
+        <div className="sidebar-value">${currentPlayer?.chips || 0}</div>
+      </div>
+
+      <div className="sidebar-pot">
+        <div className="sidebar-label">TO CALL</div>
+        <div className="sidebar-value">${callAmount}</div>
+      </div>
+
+      {/* Bet Controls */}
       {validActions.includes('raise') && (
-        <div className="bet-controls">
+        <div className="bet-controls-panel">
           <div className="bet-label">RAISE AMOUNT</div>
           <div className="bet-display">${betAmount}</div>
 
-          <div className="bet-buttons">
-            <button
-              className="bet-adjust-btn"
-              onClick={() => adjustBet(-gameState.settings?.bigBlind || -10)}
-            >
-              -BB
-            </button>
-            <button
-              className="bet-adjust-btn"
-              onClick={() => adjustBet(-(gameState.settings?.smallBlind || -5))}
-            >
-              -SB
-            </button>
-            <button
-              className="bet-adjust-btn"
-              onClick={() => adjustBet(gameState.settings?.smallBlind || 5)}
-            >
-              +SB
-            </button>
-            <button
-              className="bet-adjust-btn"
-              onClick={() => adjustBet(gameState.settings?.bigBlind || 10)}
-            >
-              +BB
-            </button>
+          <div className="bet-buttons-row">
+            <button className="bet-adjust-btn" onClick={() => adjustBet(-gameState.settings?.bigBlind || -10)}>-BB</button>
+            <button className="bet-adjust-btn" onClick={() => adjustBet(-(gameState.settings?.smallBlind || -5))}>-SB</button>
+            <button className="bet-adjust-btn" onClick={() => adjustBet(gameState.settings?.smallBlind || 5)}>+SB</button>
+            <button className="bet-adjust-btn" onClick={() => adjustBet(gameState.settings?.bigBlind || 10)}>+BB</button>
           </div>
 
           <input
@@ -114,75 +126,40 @@ const Controls = () => {
             onChange={handleSliderChange}
             className="bet-slider"
           />
-          <div className="slider-labels">
-            <span>${getMinimumRaise()}</span>
-            <span>${maxBet}</span>
-          </div>
         </div>
       )}
 
-      {/* Action buttons */}
-      <div className="action-buttons">
+      {/* Action Buttons - Vertical Stack */}
+      <div className="action-buttons-vertical">
         {validActions.includes('fold') && (
-          <button
-            className="action-btn btn-fold"
-            onClick={() => handleAction('fold')}
-          >
+          <button className="action-btn btn-fold" onClick={() => handleAction('fold')}>
             FOLD
           </button>
         )}
 
         {validActions.includes('check') && (
-          <button
-            className="action-btn btn-check"
-            onClick={() => handleAction('check')}
-          >
+          <button className="action-btn btn-check" onClick={() => handleAction('check')}>
             CHECK
           </button>
         )}
 
         {validActions.includes('call') && (
-          <button
-            className="action-btn btn-call"
-            onClick={() => handleAction('call')}
-          >
+          <button className="action-btn btn-call" onClick={() => handleAction('call')}>
             CALL ${callAmount}
           </button>
         )}
 
         {validActions.includes('raise') && (
-          <button
-            className="action-btn btn-raise"
-            onClick={() => handleAction('raise')}
-          >
+          <button className="action-btn btn-raise" onClick={() => handleAction('raise')}>
             RAISE ${betAmount}
           </button>
         )}
 
         {validActions.includes('all-in') && (
-          <button
-            className="action-btn btn-all-in"
-            onClick={() => handleAction('all-in')}
-          >
-            ALL IN ${currentPlayer?.chips || 0}
+          <button className="action-btn btn-all-in" onClick={() => handleAction('all-in')}>
+            ALL IN
           </button>
         )}
-      </div>
-
-      {/* Player info */}
-      <div className="player-info">
-        <div className="info-item">
-          <span className="info-label">Your Chips:</span>
-          <span className="info-value">${currentPlayer?.chips || 0}</span>
-        </div>
-        <div className="info-item">
-          <span className="info-label">Current Bet:</span>
-          <span className="info-value">${currentPlayer?.currentBet || 0}</span>
-        </div>
-        <div className="info-item">
-          <span className="info-label">To Call:</span>
-          <span className="info-value">${callAmount}</span>
-        </div>
       </div>
     </div>
   );
