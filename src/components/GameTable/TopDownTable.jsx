@@ -17,9 +17,12 @@ const TopDownTable = () => {
   // Animation state
   const [flyingCards, setFlyingCards] = useState([]);
   const [cardsDealt, setCardsDealt] = useState(true);
+  const [communityCardsDealt, setCommunityCardsDealt] = useState(0);
+  const [lastCommunityCount, setLastCommunityCount] = useState(0);
   const feltRef = useRef(null);
   const deckRef = useRef(null);
   const seatRefs = useRef({});
+  const communityRef = useRef(null);
 
   // Determine pot visual image and size
   const getPotVisual = () => {
@@ -54,6 +57,8 @@ const TopDownTable = () => {
   // Trigger deal animation on new hand
   useEffect(() => {
     if (gameState.lastAction?.type === 'new-hand') {
+      setCommunityCardsDealt(0);
+      setLastCommunityCount(0);
       runDealAnimation();
     }
   }, [gameState.lastAction]);
@@ -110,10 +115,33 @@ const TopDownTable = () => {
 
     setFlyingCards(newFlyingCards);
 
-    const totalDuration = (cardCount * 150) + 400;
+    // After dealing to players, deal 5 community cards
+    const communityRect = communityRef.current?.getBoundingClientRect();
+    if (communityRect) {
+      const communityTargetX = communityRect.left - feltRect.left + (communityRect.width / 2);
+      const communityTargetY = communityRect.top - feltRect.top + (communityRect.height / 2);
+
+      for (let i = 0; i < 5; i++) {
+        const delay = (cardCount * 150) + (i * 150);
+        newFlyingCards.push({
+          id: `community-init-${i}-${Date.now()}`,
+          startX,
+          startY,
+          targetX: communityTargetX,
+          targetY: communityTargetY,
+          delay,
+          duration: 400
+        });
+      }
+    }
+
+    setFlyingCards(newFlyingCards);
+
+    const totalDuration = ((cardCount + 5) * 150) + 400;
     setTimeout(() => {
       setFlyingCards([]);
       setCardsDealt(true);
+      setCommunityCardsDealt(5); // All 5 placeholders are now dealt
     }, totalDuration);
   };
 
@@ -230,10 +258,11 @@ const TopDownTable = () => {
               ))}
 
               {/* Community cards in center */}
-              <div className="community-cards-center">
+              <div className="community-cards-center" ref={communityRef}>
                 <div className="community-cards-row">
-                  {[...Array(5)].map((_, index) => {
+                  {communityCardsDealt > 0 && [...Array(5)].map((_, index) => {
                     const card = communityCards[index];
+
                     if (card) {
                       return (
                         <Card
@@ -245,6 +274,7 @@ const TopDownTable = () => {
                         />
                       );
                     } else {
+                      // Show face-down placeholder
                       return (
                         <Card
                           key={`placeholder-${index}`}

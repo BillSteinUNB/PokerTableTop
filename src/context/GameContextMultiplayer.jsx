@@ -385,6 +385,38 @@ export function GameProvider({ children }) {
     });
   };
 
+  // Leave game (exit from active game to main menu)
+  const leaveGame = () => {
+    // Clean up multiplayer connection if active
+    if (isMultiplayer) {
+      socketService.leaveLobby();
+    }
+
+    // Reset all state
+    setIsMultiplayer(false);
+    setLobbyData({
+      code: '',
+      isHost: false,
+      players: [],
+      settings: {
+        maxPlayers: 8,
+        startingChips: 1000,
+        smallBlind: 5,
+        bigBlind: 10
+      }
+    });
+    setGameState({
+      pot: 0,
+      currentPlayerIndex: 0,
+      communityCards: [],
+      players: [],
+      roundState: 'waiting'
+    });
+
+    // Navigate back to main menu
+    navigateTo('mainMenu');
+  };
+
   const value = {
     currentView,
     navigateTo,
@@ -394,6 +426,7 @@ export function GameProvider({ children }) {
     createLobby,
     joinLobby,
     leaveLobby,
+    leaveGame,
     updateLobbySettings,
     startGame,
     gameState,

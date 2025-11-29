@@ -7,6 +7,7 @@ import CharacterSelection from './components/CharacterSelection/CharacterSelecti
 import Lobby from './components/Lobby/Lobby';
 import TopDownTable from './components/GameTable/TopDownTable';
 import Controls from './components/Controls/Controls';
+import ExitButton from './components/ExitButton/ExitButton';
 import './App.css';
 
 /**
@@ -14,7 +15,13 @@ import './App.css';
  * Handles navigation between different game screens
  */
 function GameRouter() {
-  const { currentView } = useGame();
+  const { currentView, leaveGame } = useGame();
+
+  const handleExitGame = () => {
+    if (window.confirm('Are you sure you want to leave the game?')) {
+      leaveGame();
+    }
+  };
 
   switch (currentView) {
     case 'mainMenu':
@@ -31,6 +38,7 @@ function GameRouter() {
       return (
         <div className="game-view">
           <TopDownTable />
+          <ExitButton onClick={handleExitGame} />
         </div>
       );
     default:

@@ -49,6 +49,57 @@ function broadcastGameState(lobbyCode) {
 }
 
 /**
+ * Start action timeout for current player
+ * Auto-folds if player doesn't act within 30 seconds
+ */
+function startActionTimeout(lobbyCode) {
+  const lobby = lobbies.get(lobbyCode);
+  const engine = gameEngines.get(lobbyCode);
+
+  if (!lobby || !engine) return;
+
+  // Clear any existing timeout
+  if (lobby.actionTimeout) {
+    clearTimeout(lobby.actionTimeout);
+  }
+
+  const gameState = engine.getGameState();
+
+  // Don't set timeout for waiting/showdown states
+  if (gameState.roundState === 'waiting' || gameState.roundState === 'showdown' || gameState.roundState === 'hand-complete') {
+    return;
+  }
+
+  // Set 30-second timeout
+  lobby.actionTimeout = setTimeout(() => {
+    const currentState = engine.getGameState();
+    const currentPlayer = currentState.players[currentState.currentPlayerIndex];
+
+    console.log(`[${new Date().toLocaleTimeString()}] Action timeout for ${currentPlayer.name} in lobby ${lobbyCode}`);
+
+    // Auto-fold the player
+    try {
+      engine.handlePlayerAction('fold', 0);
+      broadcastGameState(lobbyCode);
+
+      // Notify all players
+      io.to(lobbyCode).emit('playerTimedOut', {
+        playerName: currentPlayer.name,
+        playerIndex: currentState.currentPlayerIndex
+      });
+
+      // Check if game continues and start next timeout
+      const newState = engine.getGameState();
+      if (newState.roundState !== 'showdown' && newState.roundState !== 'hand-complete') {
+        startActionTimeout(lobbyCode);
+      }
+    } catch (error) {
+      console.error(`[${new Date().toLocaleTimeString()}] Error auto-folding player:`, error);
+    }
+  }, 30000); // 30 seconds
+}
+
+/**
  * Broadcast lobby state to all players in a lobby
  */
 function broadcastLobbyState(lobbyCode) {
@@ -93,7 +144,8 @@ io.on('connection', (socket) => {
           minPlayers: 2,
           maxPlayers: 8
         },
-        gameStarted: false
+        gameStarted: false,
+        actionTimeout: null
       };
 
       lobbies.set(lobbyCode, lobby);
@@ -251,6 +303,9 @@ io.on('connection', (socket) => {
 
     callback({ success: true });
     broadcastGameState(lobbyCode);
+
+    // Start action timeout for first player
+    startActionTimeout(lobbyCode);
   });
 
   /**
@@ -259,6 +314,7 @@ io.on('connection', (socket) => {
   socket.on('playerAction', ({ action, amount }, callback) => {
     const lobbyCode = socket.lobbyCode;
     const engine = gameEngines.get(lobbyCode);
+    const lobby = lobbies.get(lobbyCode);
 
     if (!engine) {
       callback({ success: false, error: 'Game not found' });
@@ -274,6 +330,12 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Clear any pending timeout for this lobby
+    if (lobby.actionTimeout) {
+      clearTimeout(lobby.actionTimeout);
+      lobby.actionTimeout = null;
+    }
+
     try {
       engine.handlePlayerAction(action, amount);
       callback({ success: true });
@@ -286,6 +348,9 @@ io.on('connection', (socket) => {
           engine.nextHand();
           broadcastGameState(lobbyCode);
         }, 5000);
+      } else {
+        // Start timeout for next player
+        startActionTimeout(lobbyCode);
       }
     } catch (error) {
       callback({ success: false, error: error.message });
@@ -315,6 +380,7 @@ io.on('connection', (socket) => {
     if (!lobbyCode) return;
 
     const lobby = lobbies.get(lobbyCode);
+    const engine = gameEngines.get(lobbyCode);
     if (!lobby) return;
 
     // Mark player as disconnected instead of removing immediately
@@ -322,6 +388,41 @@ io.on('connection', (socket) => {
     if (player) {
       player.disconnected = true;
       console.log(`[${new Date().toLocaleTimeString()}] ${player.name} disconnected from ${lobbyCode}`);
+
+      // If game is active and it's this player's turn, auto-fold them
+      if (lobby.gameStarted && engine) {
+        const gameState = engine.getGameState();
+        const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+
+        if (currentPlayer && currentPlayer.socketId === socket.id) {
+          console.log(`[${new Date().toLocaleTimeString()}] Auto-folding disconnected player ${player.name}`);
+
+          // Clear any action timeout
+          if (lobby.actionTimeout) {
+            clearTimeout(lobby.actionTimeout);
+            lobby.actionTimeout = null;
+          }
+
+          try {
+            engine.handlePlayerAction('fold', 0);
+            broadcastGameState(lobbyCode);
+
+            // Notify all players
+            io.to(lobbyCode).emit('playerDisconnected', {
+              playerName: player.name,
+              autoFolded: true
+            });
+
+            // Start timeout for next player
+            const newState = engine.getGameState();
+            if (newState.roundState !== 'showdown' && newState.roundState !== 'hand-complete') {
+              startActionTimeout(lobbyCode);
+            }
+          } catch (error) {
+            console.error(`[${new Date().toLocaleTimeString()}] Error auto-folding disconnected player:`, error);
+          }
+        }
+      }
 
       // If game hasn't started, remove player after 30 seconds
       if (!lobby.gameStarted) {
@@ -333,6 +434,11 @@ io.on('connection', (socket) => {
             if (lobby.players.length === 0) {
               lobbies.delete(lobbyCode);
               gameEngines.delete(lobbyCode);
+
+              // Clear any timeouts
+              if (lobby.actionTimeout) {
+                clearTimeout(lobby.actionTimeout);
+              }
             } else {
               if (lobby.hostId === socket.id) {
                 lobby.hostId = lobby.players[0].socketId;

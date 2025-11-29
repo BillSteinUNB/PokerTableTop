@@ -51,6 +51,7 @@ export function initializeGame(players, settings = DEFAULT_SETTINGS) {
     currentPlayerIndex: 0,
     pot: 0,
     currentBet: 0,
+    lastRaiseAmount: 0,
     communityCards: [],
     deck: [],
     roundState: ROUND_STATES.WAITING,
@@ -157,6 +158,7 @@ export function startNewHand(gameState) {
     communityCards: [],
     pot,
     currentBet: settings.bigBlind,
+    lastRaiseAmount: settings.bigBlind - settings.smallBlind,
     roundState: ROUND_STATES.PRE_FLOP,
     currentPlayerIndex: firstToAct,
     bettingRoundComplete: false,
@@ -260,13 +262,19 @@ export function processPlayerAction(gameState, action, amount = 0) {
       });
 
       updatedPot += actualRaiseAmount;
-      updatedCurrentBet = player.currentBet + actualRaiseAmount;
+      const newBet = player.currentBet + actualRaiseAmount;
+      const raiseSize = newBet - updatedCurrentBet;
+      updatedCurrentBet = newBet;
+
       actionTaken = {
         type: 'raise',
         playerIndex: currentPlayerIndex,
         playerName: player.name,
         amount: updatedCurrentBet
       };
+
+      // Track last raise size for minimum raise calculation
+      newState.lastRaiseAmount = raiseSize;
       break;
 
     case 'all-in':
@@ -281,14 +289,19 @@ export function processPlayerAction(gameState, action, amount = 0) {
       };
 
       // If all-in raise, reset hasActed for other players
-      if (player.currentBet + allInAmount > currentBet) {
+      const newAllInBet = player.currentBet + allInAmount;
+      if (newAllInBet > currentBet) {
         updatedPlayers = updatedPlayers.map((p, idx) => {
           if (idx !== currentPlayerIndex && !p.folded && !p.allIn) {
             return { ...p, hasActed: false };
           }
           return p;
         });
-        updatedCurrentBet = player.currentBet + allInAmount;
+        const allInRaiseSize = newAllInBet - updatedCurrentBet;
+        updatedCurrentBet = newAllInBet;
+
+        // Track last raise size for minimum raise calculation
+        newState.lastRaiseAmount = allInRaiseSize;
       }
 
       updatedPot += allInAmount;
@@ -307,7 +320,7 @@ export function processPlayerAction(gameState, action, amount = 0) {
       };
   }
 
-  const newState = {
+  let newState = {
     ...gameState,
     players: updatedPlayers,
     pot: updatedPot,
@@ -393,6 +406,9 @@ function advanceToNextRound(gameState) {
     currentBet: 0,
     hasActed: false
   }));
+
+  // Reset last raise amount for new round
+  gameState.lastRaiseAmount = 0;
 
   let newRoundState;
   let newCommunityCards = [...communityCards];
@@ -523,12 +539,18 @@ function handleShowdown(gameState) {
         mainPotWinningHand = winningHand;
       }
 
-      // Distribute pot
+      // Distribute pot evenly, with remainder going to first winner(s) closest to dealer button
       const share = Math.floor(potAmount / winners.length);
-      winners.forEach(winner => {
+      const remainder = potAmount % winners.length;
+
+      winners.forEach((winner, winnerIndex) => {
         const idx = players.findIndex(p => p.id === winner.id);
         if (idx !== -1) {
           winnings[idx] += share;
+          // Award remainder chips to first winner(s)
+          if (winnerIndex < remainder) {
+            winnings[idx] += 1;
+          }
         }
       });
     }
@@ -664,6 +686,11 @@ export function getValidActions(gameState) {
  * @returns {number} Minimum raise amount
  */
 export function getMinRaise(gameState) {
-  const { currentBet, settings } = gameState;
-  return currentBet > 0 ? currentBet * 2 : settings.bigBlind;
+  const { currentBet, settings, lastRaiseAmount = 0 } = gameState;
+
+  // Standard poker rules: minimum raise = current bet + last raise size
+  // If no raise yet this round, minimum raise is one big blind
+  const minRaiseSize = lastRaiseAmount > 0 ? lastRaiseAmount : settings.bigBlind;
+
+  return currentBet + minRaiseSize;
 }

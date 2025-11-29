@@ -1,0 +1,52 @@
+.exit-button {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border: 2px solid #666;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  text-transform: uppercase;
+}
+
+.exit-button:hover {
+  background-color: rgba(200, 50, 50, 0.8);
+  border-color: #c83232;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.exit-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.exit-button svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .exit-button {
+    bottom: 10px;
+    left: 10px;
+    padding: 8px 12px;
+    font-size: 8px;
+  }
+
+  .exit-button svg {
+    width: 14px;
+    height: 14px;
+  }
+}

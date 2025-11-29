@@ -291,24 +291,77 @@ export class GameEngine {
   }
 
   handleShowdown() {
-    const { winners, winningHand } = determineWinner(this.players, this.communityCards);
-    const potShare = Math.floor(this.pot / winners.length);
+    // 1. Identify active players (not folded)
+    const activePlayers = this.players.filter(p => !p.folded);
 
-    winners.forEach(winner => {
-      const player = this.players.find(p => p.id === winner.id);
-      if (player) {
-        player.chips += potShare;
+    if (activePlayers.length === 0) {
+      return;
+    }
+
+    // 2. Sort active players by totalBet (ascending) to find side pot levels
+    const betLevels = [...new Set(activePlayers.map(p => p.totalBet))]
+      .sort((a, b) => a - b);
+
+    let currentPotStart = 0;
+    const winnings = new Array(this.players.length).fill(0);
+    let mainPotWinningHand = null;
+
+    // 3. Process each side pot level
+    betLevels.forEach(level => {
+      const potCap = level;
+      const potAmount = this.players.reduce((sum, p) => {
+        const contribution = Math.min(p.totalBet, potCap) - Math.min(p.totalBet, currentPotStart);
+        return sum + Math.max(0, contribution);
+      }, 0);
+
+      if (potAmount > 0) {
+        // Find eligible players for this side pot (active and bet at least this amount)
+        const eligiblePlayers = activePlayers.filter(p => p.totalBet >= potCap);
+
+        // Determine winner among eligible players
+        const { winners, winningHand } = determineWinner(eligiblePlayers, this.communityCards);
+
+        if (!mainPotWinningHand) {
+          mainPotWinningHand = winningHand;
+        }
+
+        // Distribute pot evenly among winners, with remainder going to first winner(s)
+        const share = Math.floor(potAmount / winners.length);
+        const remainder = potAmount % winners.length;
+
+        winners.forEach((winner, winnerIndex) => {
+          const idx = this.players.findIndex(p => p.id === winner.id);
+          if (idx !== -1) {
+            winnings[idx] += share;
+            // Award remainder chips to first winner(s)
+            if (winnerIndex < remainder) {
+              winnings[idx] += 1;
+            }
+          }
+        });
       }
+
+      currentPotStart = potCap;
     });
+
+    // 4. Update players with winnings
+    this.players.forEach((p, index) => {
+      p.chips += winnings[index];
+    });
+
+    // 5. Identify all winners (anyone who won chips)
+    const allWinners = this.players
+      .filter((p, i) => winnings[i] > 0)
+      .map(p => ({ id: p.id, name: p.name }));
 
     this.pot = 0;
     this.currentBet = 0;
     this.roundState = ROUND_STATES.SHOWDOWN;
     this.lastAction = {
       type: 'showdown',
-      winners: winners.map(w => ({ id: w.id, name: w.name })),
-      winningHand,
-      potShare
+      winners: allWinners,
+      winningHand: mainPotWinningHand,
+      potShare: 0
     };
   }
 
