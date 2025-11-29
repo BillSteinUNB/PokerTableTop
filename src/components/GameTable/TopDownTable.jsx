@@ -13,19 +13,54 @@ const TopDownTable = () => {
   const { gameState, playerData, ROUND_STATES, handleNextHand } = useGame();
 
   // Position players around the table (8 positions max)
+  // Position players around the table based on total count and user's position
   const getPlayerPosition = (index, totalPlayers) => {
-    const positions = [
-      { class: 'position-bottom' },      // Position 0 (current player)
-      { class: 'position-left' },        // Position 1
-      { class: 'position-top-left' },    // Position 2
-      { class: 'position-top' },         // Position 3
-      { class: 'position-top-right' },   // Position 4
-      { class: 'position-right' },       // Position 5
-      { class: 'position-bottom-right' }, // Position 6
-      { class: 'position-bottom-left' }  // Position 7
-    ];
+    // Find the current user's index to rotate the table
+    const myIndex = players.findIndex(p => p.name === playerData.name);
+    const baseIndex = myIndex === -1 ? 0 : myIndex;
 
-    return positions[index] || positions[0];
+    // Calculate relative index (0 is always the current user)
+    const relativeIndex = (index - baseIndex + totalPlayers) % totalPlayers;
+
+    let positionClass = 'position-bottom';
+
+    // Define layouts based on total player count as requested
+    if (totalPlayers === 2) {
+      // 2 Players: Bottom, Top
+      const map = ['position-bottom', 'position-top'];
+      positionClass = map[relativeIndex];
+    } else if (totalPlayers === 3) {
+      // 3 Players: Bottom, Top, Left
+      const map = ['position-bottom', 'position-top', 'position-left'];
+      positionClass = map[relativeIndex];
+    } else if (totalPlayers === 4) {
+      // 4 Players: Bottom, Top, Left, Right
+      const map = ['position-bottom', 'position-top', 'position-left', 'position-right'];
+      positionClass = map[relativeIndex];
+    } else if (totalPlayers === 5) {
+      // 5 Players: Add Top-Left
+      const map = ['position-bottom', 'position-top', 'position-left', 'position-right', 'position-top-left'];
+      positionClass = map[relativeIndex];
+    } else if (totalPlayers === 6) {
+      // 6 Players: Add Top-Right
+      const map = ['position-bottom', 'position-top', 'position-left', 'position-right', 'position-top-left', 'position-top-right'];
+      positionClass = map[relativeIndex];
+    } else {
+      // 7+ Players: Fill all diagonals
+      const map = [
+        'position-bottom',
+        'position-top',
+        'position-left',
+        'position-right',
+        'position-top-left',
+        'position-top-right',
+        'position-bottom-left',
+        'position-bottom-right'
+      ];
+      positionClass = map[relativeIndex] || 'position-top';
+    }
+
+    return { class: positionClass };
   };
 
   const players = gameState.players || [];
@@ -103,6 +138,20 @@ const TopDownTable = () => {
 
                     {/* Dealer button removed as requested */}
 
+                    {/* Player's cards - only show for current player */}
+                    {!isFolded && isCurrentPlayer && player.hand && player.hand.length > 0 && (
+                      <div className="seat-cards" style={{ marginBottom: '8px', marginTop: 0 }}>
+                        {player.hand.map((card, cardIndex) => (
+                          <Card
+                            key={cardIndex}
+                            suit={card.suit}
+                            rank={card.rank}
+                            scale={0.4}
+                          />
+                        ))}
+                      </div>
+                    )}
+
                     {/* Player character - full size */}
                     <div className="seat-player-character" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '128px', flexShrink: 0 }}>
                       <PlayerAvatar
@@ -114,20 +163,6 @@ const TopDownTable = () => {
                       {isAllIn && <div className="all-in-badge">ALL IN</div>}
                       {isFolded && <div className="folded-badge">FOLDED</div>}
                     </div>
-
-                    {/* Player's cards - only show for current player */}
-                    {!isFolded && isCurrentPlayer && player.hand && player.hand.length > 0 && (
-                      <div className="seat-cards">
-                        {player.hand.map((card, cardIndex) => (
-                          <Card
-                            key={cardIndex}
-                            suit={card.suit}
-                            rank={card.rank}
-                            scale={0.4}
-                          />
-                        ))}
-                      </div>
-                    )}
 
                     {/* Current bet removed as requested */}
 
