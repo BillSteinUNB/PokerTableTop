@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useGame } from '../../context/GameContextMultiplayer';
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar';
 import Card from '../Card/Card';
@@ -18,6 +18,16 @@ const TopDownTable = () => {
   const chipStackSize = gameState.pot > 0
     ? Math.min(4, Math.max(1, Math.floor(gameState.pot / 200) + 1))
     : 0;
+
+  // Auto-advance to next hand after showdown
+  useEffect(() => {
+    if (gameState.roundState === ROUND_STATES.SHOWDOWN) {
+      const timer = setTimeout(() => {
+        handleNextHand();
+      }, 4000); // 4 seconds delay to see results
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.roundState, handleNextHand]);
 
   // Position players around the table based on total count and user's position
   const getPlayerPosition = (index, totalPlayers) => {
@@ -75,20 +85,6 @@ const TopDownTable = () => {
   const roundState = gameState.roundState;
   const dealerPosition = gameState.dealerPosition;
   const lastAction = gameState.lastAction;
-
-  // Format round state for display
-  const getRoundStateDisplay = () => {
-    const stateMap = {
-      [ROUND_STATES.WAITING]: 'Waiting for game',
-      [ROUND_STATES.PRE_FLOP]: 'Pre-Flop',
-      [ROUND_STATES.FLOP]: 'Flop',
-      [ROUND_STATES.TURN]: 'Turn',
-      [ROUND_STATES.RIVER]: 'River',
-      [ROUND_STATES.SHOWDOWN]: 'Showdown',
-      [ROUND_STATES.HAND_COMPLETE]: 'Hand Complete'
-    };
-    return stateMap[roundState] || roundState;
-  };
 
   return (
     <div className="top-down-table">
@@ -204,15 +200,13 @@ const TopDownTable = () => {
             </div>
           </div>
 
-          {/* Game status message - Only show for important events */}
-          {(lastAction?.type === 'showdown' || lastAction?.type === 'error') && (
+          {/* Game status message - Only show for errors */}
+          {lastAction?.type === 'error' && (
             <div className="game-status-bar">
               <div className="status-info">
-                {lastAction && lastAction.type === 'error' && (
-                  <div className="status-item error-message">
-                    {lastAction.message}
-                  </div>
-                )}
+                <div className="status-item error-message">
+                  {lastAction.message}
+                </div>
               </div>
             </div>
           )}
@@ -240,9 +234,10 @@ const TopDownTable = () => {
               const isBB = i === (dealerPosition + 2) % players.length;
               const isDealer = i === dealerPosition;
               const isTurn = gameState.currentPlayerIndex === i;
+              const isWinner = lastAction?.type === 'showdown' && lastAction.winners.some(w => w.id === p.id);
 
               return (
-                <div key={i} className={`sidebar-player-item ${isTurn ? 'active' : ''} ${p.folded ? 'folded' : ''}`}>
+                <div key={i} className={`sidebar-player-item ${isTurn ? 'active' : ''} ${p.folded ? 'folded' : ''} ${isWinner ? 'winner-glow' : ''}`}>
                   <div className="player-row-main">
                     {isTurn && <span className="turn-indicator">▶</span>}
                     <span className="player-name">{p.name}</span>
@@ -252,6 +247,7 @@ const TopDownTable = () => {
                     {isDealer && <span className="badge dealer">D</span>}
                     {isSB && <span className="badge sb">SB</span>}
                     {isBB && <span className="badge bb">BB</span>}
+                    {isWinner && <span className="badge winner">WIN</span>}
                   </div>
                 </div>
               );

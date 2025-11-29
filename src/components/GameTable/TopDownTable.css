@@ -343,102 +343,6 @@
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
 }
 
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .table-felt-top {
-    min-height: 500px;
-    padding: 40px;
-  }
-
-  .player-seat {
-    min-width: 120px;
-  }
-
-  .position-bottom {
-    bottom: -160px;
-  }
-
-  .position-top {
-    top: -160px;
-  }
-
-  .position-left {
-    left: -180px;
-  }
-
-  .position-right {
-    right: -180px;
-  }
-
-  .player-money-display {
-    font-size: 10px;
-    padding: 6px 10px;
-  }
-}
-
-@media (max-width: 768px) {
-  .top-down-table {
-    padding: 20px 10px;
-  }
-
-  .table-felt-top {
-    min-height: 400px;
-    padding: 30px 20px;
-  }
-
-  .player-seat {
-    min-width: 100px;
-  }
-
-  .position-bottom {
-    bottom: -140px;
-  }
-
-  .position-top {
-    top: -140px;
-  }
-
-  .position-left {
-    left: -160px;
-  }
-
-  .position-right {
-    right: -160px;
-  }
-
-  .pot-amount {
-    font-size: 16px;
-  }
-
-  .status-text {
-    font-size: 10px;
-  }
-
-  .player-money-display {
-    font-size: 8px;
-    padding: 4px 8px;
-    top: -40px;
-  }
-
-  .player-chips-display {
-    font-size: 8px;
-  }
-
-  .all-in-badge,
-  .folded-badge {
-    font-size: 8px;
-    padding: 4px 8px;
-  }
-
-  .dealer-button {
-    width: 25px;
-    height: 25px;
-    font-size: 10px;
-    top: -20px;
-    right: -20px;
-  }
-}
-
 /* Table Decorations */
 .table-decorations {
   position: absolute;
@@ -619,5 +523,128 @@
 
   50% {
     opacity: 0;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .table-felt-top {
+    min-height: 500px;
+    padding: 40px;
+  }
+
+  .player-seat {
+    min-width: 120px;
+  }
+
+  .position-bottom {
+    bottom: -160px;
+  }
+
+  .position-top {
+    top: -160px;
+  }
+
+  .position-left {
+    left: -180px;
+  }
+
+  .position-right {
+    right: -180px;
+  }
+
+  .player-money-display {
+    font-size: 10px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-down-table {
+    padding: 20px 10px;
+  }
+
+  .table-felt-top {
+    min-height: 400px;
+    padding: 30px 20px;
+  }
+
+  .player-seat {
+    min-width: 100px;
+  }
+
+  .position-bottom {
+    bottom: -140px;
+  }
+
+  .position-top {
+    top: -140px;
+  }
+
+  .position-left {
+    left: -160px;
+  }
+
+  .position-right {
+    right: -160px;
+  }
+
+  .pot-amount {
+    font-size: 16px;
+  }
+
+  .status-text {
+    font-size: 10px;
+  }
+
+  .player-money-display {
+    font-size: 8px;
+    padding: 4px 8px;
+    top: -40px;
+  }
+
+  .player-chips-display {
+    font-size: 8px;
+  }
+
+  .all-in-badge,
+  .folded-badge {
+    font-size: 8px;
+    padding: 4px 8px;
+  }
+
+  .dealer-button {
+    width: 25px;
+    height: 25px;
+    font-size: 10px;
+    top: -20px;
+    right: -20px;
+  }
+}
+
+/* Winner Highlight */
+.sidebar-player-item.winner-glow {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: #fbbf24;
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+  animation: pulse-gold 2s infinite;
+}
+
+.badge.winner {
+  background: #fbbf24;
+  color: #000;
+}
+
+@keyframes pulse-gold {
+  0% {
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+  }
+
+  100% {
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
   }
 }
