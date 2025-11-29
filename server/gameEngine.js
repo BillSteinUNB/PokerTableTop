@@ -553,7 +553,6 @@ export class GameEngine {
     );
 
     // 7. Generate hand descriptions for each active player
-    const { evaluateHand } = require('./utils/handEvaluator.js');
     const handDescriptions = activePlayers.map(p => {
       const hand = evaluateHand([...p.hand, ...this.communityCards]);
       let description = hand.name;
@@ -651,8 +650,9 @@ export class GameEngine {
     let newDealer = (this.dealerPosition + 1) % this.players.length;
     let attempts = 0;
 
-    // Find next dealer with chips (with safety check to prevent infinite loop)
-    while (this.players[newDealer].chips <= 0 && attempts < this.players.length) {
+    // Find next dealer with money (chips or account balance)
+    // Check both chips and accountBalance since chips might be 0 after showdown
+    while ((this.players[newDealer].chips <= 0 && this.players[newDealer].accountBalance <= 0) && attempts < this.players.length) {
       newDealer = (newDealer + 1) % this.players.length;
       attempts++;
     }

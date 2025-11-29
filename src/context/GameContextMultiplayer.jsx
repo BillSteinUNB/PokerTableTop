@@ -184,18 +184,46 @@ export function GameProvider({ children }) {
       };
 
       console.log('[GameContext] Creating lobby with player data:', playerWithId);
-      const code = await socketService.createLobby(playerWithId, lobbyData.settings);
 
-      setLobbyData(prev => ({
-        ...prev,
-        code,
-        isHost: true,
-        players: [playerWithId]
-      }));
+      // Wait for lobby update to confirm creation
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          socketService.socket.off('lobbyUpdate', lobbyUpdateHandler);
+          setIsConnecting(false);
+          reject(new Error('Timeout waiting for lobby creation'));
+        }, 5000);
 
-      setIsMultiplayer(true);
-      setIsConnecting(false);
-      return code;
+        const lobbyUpdateHandler = (lobbyUpdate) => {
+          console.log('[GameContext] Received lobby update after create:', lobbyUpdate);
+          clearTimeout(timeout);
+          socketService.socket.off('lobbyUpdate', lobbyUpdateHandler);
+
+          setLobbyData({
+            code: lobbyUpdate.code,
+            isHost: lobbyUpdate.hostId === socketService.getSocketId(),
+            players: lobbyUpdate.players,
+            settings: lobbyUpdate.settings
+          });
+
+          setIsMultiplayer(true);
+          setIsConnecting(false);
+          resolve(lobbyUpdate.code);
+        };
+
+        socketService.socket.once('lobbyUpdate', lobbyUpdateHandler);
+
+        socketService.createLobby(playerWithId, lobbyData.settings)
+          .then((code) => {
+            // Code received, now waiting for lobbyUpdate event
+            console.log('[GameContext] Lobby created with code:', code);
+          })
+          .catch((error) => {
+            clearTimeout(timeout);
+            socketService.socket.off('lobbyUpdate', lobbyUpdateHandler);
+            setIsConnecting(false);
+            reject(error);
+          });
+      });
     } catch (error) {
       console.error('[GameContext] Failed to create lobby:', error);
       setConnectionError(error.message);
@@ -216,16 +244,41 @@ export function GameProvider({ children }) {
       };
 
       console.log('[GameContext] Joining lobby:', code, 'with player:', playerWithId);
-      await socketService.joinLobby(code, playerWithId);
 
-      setLobbyData(prev => ({
-        ...prev,
-        code,
-        isHost: false
-      }));
+      // Set up a one-time listener for lobby update to confirm join
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          socketService.socket.off('lobbyUpdate', lobbyUpdateHandler);
+          setIsConnecting(false);
+          reject(new Error('Timeout waiting for lobby update'));
+        }, 5000);
 
-      setIsMultiplayer(true);
-      setIsConnecting(false);
+        const lobbyUpdateHandler = (lobbyUpdate) => {
+          console.log('[GameContext] Received lobby update after join:', lobbyUpdate);
+          clearTimeout(timeout);
+          socketService.socket.off('lobbyUpdate', lobbyUpdateHandler);
+
+          setLobbyData({
+            code: lobbyUpdate.code,
+            isHost: lobbyUpdate.hostId === socketService.getSocketId(),
+            players: lobbyUpdate.players,
+            settings: lobbyUpdate.settings
+          });
+
+          setIsMultiplayer(true);
+          setIsConnecting(false);
+          resolve();
+        };
+
+        socketService.socket.once('lobbyUpdate', lobbyUpdateHandler);
+
+        socketService.joinLobby(code, playerWithId).catch((error) => {
+          clearTimeout(timeout);
+          socketService.socket.off('lobbyUpdate', lobbyUpdateHandler);
+          setIsConnecting(false);
+          reject(error);
+        });
+      });
     } catch (error) {
       console.error('[GameContext] Failed to join lobby:', error);
       setConnectionError(error.message);

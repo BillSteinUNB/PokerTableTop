@@ -12,12 +12,8 @@ const Lobby = () => {
   const [editingSettings, setEditingSettings] = useState(false);
   const [localSettings, setLocalSettings] = useState(lobbyData.settings || {});
 
-  useEffect(() => {
-    // If no lobby exists and we're the host, create one
-    if (!lobbyData.code) {
-      createLobby();
-    }
-  }, []);
+  // Removed auto-create lobby effect - lobby should be created before navigating here
+  // This was causing issues where joining players would create their own lobby instead
 
   useEffect(() => {
     // Update local settings when lobby data changes
@@ -66,6 +62,29 @@ const Lobby = () => {
 
   // Get players from lobby data (comes from server in multiplayer mode)
   const players = lobbyData.players || [];
+
+  // If no lobby code, show loading or redirect
+  if (!lobbyData.code) {
+    return (
+      <div className="lobby">
+        <div className="lobby-container">
+          <div className="lobby-header">
+            <h2 className="lobby-title">LOADING LOBBY...</h2>
+            <p style={{ textAlign: 'center', marginTop: '20px' }}>
+              Please wait while we load the lobby information.
+            </p>
+            <button
+              className="lobby-btn"
+              onClick={handleLeaveLobby}
+              style={{ marginTop: '20px' }}
+            >
+              ← BACK TO MENU
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="lobby">

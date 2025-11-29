@@ -17,6 +17,10 @@ const CharacterSelection = () => {
   const [selectedChipType, setSelectedChipType] = useState(playerData.chipType || 'black');
   const [nameError, setNameError] = useState('');
 
+  // Check if we're joining an existing lobby
+  const pendingLobbyCode = sessionStorage.getItem('pendingLobbyCode');
+  const isJoining = !!pendingLobbyCode;
+
   const handleNameChange = (e) => {
     const value = e.target.value.slice(0, 12);
     setName(value);
@@ -221,7 +225,7 @@ const CharacterSelection = () => {
               disabled={name.trim().length < 2}
               style={{ flex: 1 }}
             >
-              CREATE PARTY →
+              {isJoining ? 'JOIN PARTY →' : 'CREATE PARTY →'}
             </button>
           </div>
         </div>

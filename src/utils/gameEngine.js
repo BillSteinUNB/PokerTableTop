@@ -866,8 +866,9 @@ export function moveToNextHand(gameState) {
   let newDealerPosition = (dealerPosition + 1) % players.length;
   let attempts = 0;
 
-  // Find next dealer with chips (with safety check to prevent infinite loop)
-  while (players[newDealerPosition].chips <= 0 && attempts < players.length) {
+  // Find next dealer with money (chips or account balance)
+  // Check both chips and accountBalance since chips might be 0 after showdown
+  while ((players[newDealerPosition].chips <= 0 && players[newDealerPosition].accountBalance <= 0) && attempts < players.length) {
     newDealerPosition = (newDealerPosition + 1) % players.length;
     attempts++;
   }
