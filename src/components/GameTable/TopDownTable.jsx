@@ -210,7 +210,8 @@ const TopDownTable = () => {
                   <div className="status-item showdown-result">
                     <span className="status-label">Winner:</span>
                     <span className="status-value">
-                      {lastAction.winners.map(w => w.name).join(', ')} - {lastAction.winningHand?.name}
+                      {lastAction.winners.map(w => w.name).join(', ')}
+                      {lastAction.winningHand?.name && lastAction.winningHand.name !== 'Invalid Hand' && ` - ${lastAction.winningHand.name}`}
                     </span>
                     <button className="next-hand-btn" onClick={handleNextHand}>
                       Next Hand
