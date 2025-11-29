@@ -69,17 +69,17 @@ const TopDownTable = () => {
                         suit={card.suit}
                         rank={card.rank}
                         faceDown={card.faceDown}
-                        scale={0.8}
+                        scale={0.4}
                       />
                     ))
                   ) : (
                     // Placeholder cards
                     <>
-                      <Card faceDown scale={0.8} />
-                      <Card faceDown scale={0.8} />
-                      <Card faceDown scale={0.8} />
-                      <Card faceDown scale={0.8} />
-                      <Card faceDown scale={0.8} />
+                      <Card faceDown scale={0.4} />
+                      <Card faceDown scale={0.4} />
+                      <Card faceDown scale={0.4} />
+                      <Card faceDown scale={0.4} />
+                      <Card faceDown scale={0.4} />
                     </>
                   )}
                 </div>
@@ -132,13 +132,7 @@ const TopDownTable = () => {
                       </div>
                     )}
 
-                    {/* Current bet */}
-                    {player.currentBet > 0 && !isFolded && (
-                      <div className="player-bet">
-                        <div className="bet-chip">💰</div>
-                        <div className="bet-value">${player.currentBet}</div>
-                      </div>
-                    )}
+                    {/* Current bet removed as requested */}
 
                     {/* Active turn indicator */}
                     {gameState.currentPlayerIndex === index && !isFolded && !isAllIn && (

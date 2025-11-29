@@ -67,13 +67,7 @@ const Controls = () => {
   const maxBet = currentPlayer?.chips + currentPlayer?.currentBet || 1000;
 
   if (!isMyTurn) {
-    return (
-      <div className="controls-container">
-        <div className="waiting-message">
-          <p>Waiting for {currentPlayer?.name || 'player'}...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
