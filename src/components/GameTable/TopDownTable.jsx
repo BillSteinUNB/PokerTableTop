@@ -128,26 +128,28 @@ const TopDownTable = () => {
               {/* Community cards in center */}
               <div className="community-cards-center">
                 <div className="community-cards-row">
-                  {communityCards.length > 0 ? (
-                    communityCards.map((card, index) => (
-                      <Card
-                        key={index}
-                        suit={card.suit}
-                        rank={card.rank}
-                        faceDown={card.faceDown}
-                        scale={0.4}
-                      />
-                    ))
-                  ) : (
-                    // Placeholder cards
-                    <>
-                      <Card faceDown scale={0.4} />
-                      <Card faceDown scale={0.4} />
-                      <Card faceDown scale={0.4} />
-                      <Card faceDown scale={0.4} />
-                      <Card faceDown scale={0.4} />
-                    </>
-                  )}
+                  {[...Array(5)].map((_, index) => {
+                    const card = communityCards[index];
+                    if (card) {
+                      return (
+                        <Card
+                          key={index}
+                          suit={card.suit}
+                          rank={card.rank}
+                          faceDown={card.faceDown}
+                          scale={0.4}
+                        />
+                      );
+                    } else {
+                      return (
+                        <Card
+                          key={`placeholder-${index}`}
+                          faceDown
+                          scale={0.4}
+                        />
+                      );
+                    }
+                  })}
                 </div>
               </div>
 
@@ -206,18 +208,6 @@ const TopDownTable = () => {
           {(lastAction?.type === 'showdown' || lastAction?.type === 'error') && (
             <div className="game-status-bar">
               <div className="status-info">
-                {lastAction && lastAction.type === 'showdown' && (
-                  <div className="status-item showdown-result">
-                    <span className="status-label">Winner:</span>
-                    <span className="status-value">
-                      {lastAction.winners.map(w => w.name).join(', ')}
-                      {lastAction.winningHand?.name && lastAction.winningHand.name !== 'Invalid Hand' && ` - ${lastAction.winningHand.name}`}
-                    </span>
-                    <button className="next-hand-btn" onClick={handleNextHand}>
-                      Next Hand
-                    </button>
-                  </div>
-                )}
                 {lastAction && lastAction.type === 'error' && (
                   <div className="status-item error-message">
                     {lastAction.message}
