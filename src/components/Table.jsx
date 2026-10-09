@@ -12,6 +12,50 @@ import { Avatar, Card, ChipStack, Suit } from "./PixelArt.jsx";
 import Controls from "./Controls.jsx";
 import ChatPanel from "./ChatPanel.jsx";
 
+// Phones reserve the middle for a single, readable row of community cards.
+const phoneSeats = {
+  2: [[50, 13]],
+  3: [
+    [22, 15],
+    [78, 15],
+  ],
+  4: [
+    [15, 24],
+    [50, 12],
+    [85, 24],
+  ],
+  5: [
+    [15, 28],
+    [31, 12],
+    [69, 12],
+    [85, 28],
+  ],
+  6: [
+    [15, 67],
+    [15, 25],
+    [50, 12],
+    [85, 25],
+    [85, 67],
+  ],
+  7: [
+    [15, 67],
+    [15, 27],
+    [32, 11],
+    [68, 11],
+    [85, 27],
+    [85, 67],
+  ],
+  8: [
+    [15, 68],
+    [15, 28],
+    [25, 10],
+    [50, 10],
+    [75, 10],
+    [85, 28],
+    [85, 68],
+  ],
+};
+
 export default function Table() {
   const state = useTable();
   const { game, room, playerId, reactions, clockOffset } = state;
@@ -22,6 +66,9 @@ export default function Table() {
     ...game.players.slice(0, myIndex),
   ];
   const [flights, setFlights] = useState([]);
+  useEffect(() => {
+    audio.play("deal");
+  }, []);
   useEffect(() => {
     if (!flights.length) return;
     const cleanup = setTimeout(() => setFlights([]), 650);
@@ -127,9 +174,12 @@ export default function Table() {
             <div className="community">
               <div className="pot">
                 <span className="eyebrow">
-                  {result ? "HAND COMPLETE" : "IN THE MIDDLE"}
+                  {result ? "HAND COMPLETE" : "POT"}
                 </span>
-                <strong>
+                <strong
+                  key={`${game.handNumber}-${result ? result.total : game.pot}`}
+                  className="pot-amount"
+                >
                   <ChipStack />
                   {number(result ? result.total : game.pot)}
                 </strong>
@@ -140,7 +190,7 @@ export default function Table() {
                     key={`${game.handNumber}-${i}-${!!game.board[i]}`}
                     card={game.board[i]}
                     ghost={!game.board[i]}
-                    index={i}
+                    index={game.street === "flop" ? i : 0}
                     winner={
                       !!result?.revealed &&
                       !!game.board[i] &&
@@ -154,7 +204,9 @@ export default function Table() {
                 ))}
               </div>
               {result ? (
-                <HandResult result={result} key={game.handNumber} />
+                <div className="street-progress hand-complete-label">
+                  {result.revealed ? "SHOWDOWN" : "HAND COMPLETE"}
+                </div>
               ) : (
                 <div className="street-progress">
                   {["preflop", "flop", "turn", "river"].map((street) => (
@@ -175,18 +227,25 @@ export default function Table() {
               const theta = Math.PI / 2 + (i * Math.PI * 2) / players.length;
               const x = 50 + 41 * Math.cos(theta),
                 y = i === 0 ? 83 : 50 + 37 * Math.sin(theta);
-              const acting = game.actor === originalIndex;
+              const acting = !result && game.actor === originalIndex;
               const self = player.id === playerId;
               const online = room.players.find(
                 (p) => p.id === player.id,
               )?.connected;
               const won = result?.winners.find((p) => p.id === player.id);
               const reaction = reactions[player.id];
+              const [phoneX, phoneY] =
+                i === 0 ? [50, 83] : phoneSeats[players.length][i - 1];
               return (
                 <div
                   key={player.id}
-                  className={`table-seat ${self ? "self" : ""} ${x > 65 ? "right-side" : ""} ${acting ? "acting" : ""} ${player.folded ? "folded" : ""} ${won ? "winner" : ""}`}
-                  style={{ "--seat-x": `${x}%`, "--seat-y": `${y}%` }}
+                  className={`table-seat ${self ? "self" : ""} ${phoneY <= 15 ? "phone-top" : ""} ${x > 65 ? "right-side" : ""} ${acting ? "acting" : ""} ${player.folded ? "folded" : ""} ${won ? "winner" : ""}`}
+                  style={{
+                    "--seat-x": `${x}%`,
+                    "--seat-y": `${y}%`,
+                    "--phone-x": `${phoneX}%`,
+                    "--phone-y": `${phoneY}%`,
+                  }}
                 >
                   {reaction && now - reaction.at < 3500 && (
                     <div className="reaction-bubble">
@@ -246,16 +305,18 @@ export default function Table() {
                         ? `+${number(won.amount)} ✦`
                         : player.eliminatedAt
                           ? "ELIMINATED"
-                          : player.allIn
-                            ? "ALL IN"
-                            : player.lastAction ||
-                              (game.smallBlindSeat === originalIndex
-                                ? "SMALL BLIND"
-                                : game.bigBlindSeat === originalIndex
-                                  ? "BIG BLIND"
-                                  : acting
-                                    ? "THINKING…"
-                                    : "")}
+                          : self && acting
+                            ? "YOUR TURN"
+                            : player.allIn
+                              ? "ALL IN"
+                              : player.lastAction ||
+                                (game.smallBlindSeat === originalIndex
+                                  ? "SMALL BLIND"
+                                  : game.bigBlindSeat === originalIndex
+                                    ? "BIG BLIND"
+                                    : acting
+                                      ? "THINKING…"
+                                      : "")}
                   </div>
                   {player.bet > 0 && (
                     <span className={`seat-bet ${y > 65 ? "above" : "below"}`}>
@@ -287,7 +348,7 @@ export default function Table() {
               <HandResult result={result} key={game.handNumber} />
             </div>
           )}
-          <Controls key={`${game.handNumber}-${game.revision}`} />
+          <Controls />
           <div className="last-event" role="status">
             {game.events.at(-1)?.text}
           </div>

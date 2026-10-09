@@ -1,0 +1,207 @@
+.audio-control {
+  position: relative;
+  z-index: 45;
+}
+.audio-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 11px;
+  background: #202131;
+  border: 1px solid #444255;
+  box-shadow: 0 3px 0 #0d0f19;
+  color: #cec9df;
+  transition:
+    color 120ms,
+    border-color 120ms,
+    transform 120ms;
+}
+.audio-trigger:hover,
+.audio-trigger[aria-expanded="true"] {
+  color: var(--mint);
+  border-color: #92bca1;
+}
+.audio-trigger:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0d0f19;
+}
+.audio-trigger > span {
+  font-family: var(--pixel);
+  font-size: 8px;
+}
+.audio-indicator {
+  width: 4px;
+  height: 4px;
+  background: var(--mint);
+}
+.audio-indicator.muted {
+  background: #6b657a;
+}
+.audio-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 13px);
+  width: 290px;
+  padding: 16px;
+  border: 1px solid #5b526c;
+  background: #20212f;
+  box-shadow:
+    5px 5px 0 #10111bc9,
+    0 12px 36px #08091070;
+  text-align: left;
+  color: #eeeaf7;
+  animation: audio-appear 120ms ease-out;
+}
+.audio-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #3e384e;
+}
+.audio-heading h2 {
+  margin: 0;
+  font-family: var(--pixel);
+  font-size: 11px;
+  font-weight: normal;
+}
+.audio-close {
+  border: 0;
+  background: transparent;
+  color: #b6adc5;
+  font-size: 25px;
+  width: 30px;
+  height: 30px;
+  line-height: 1;
+}
+.audio-close:hover {
+  color: white;
+}
+.audio-channel {
+  padding-top: 16px;
+}
+.audio-channel + .audio-channel {
+  margin-top: 13px;
+  border-top: 1px solid #3e384e;
+}
+.audio-channel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.audio-channel-heading > span {
+  font-size: 14px;
+  font-weight: 600;
+}
+.audio-channel-heading small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  color: #a19bb3;
+}
+.audio-switch {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 26px;
+  padding: 4px;
+  border: 1px solid #615770;
+  background: #171722;
+}
+.audio-switch span {
+  display: block;
+  width: 14px;
+  height: 16px;
+  background: #797086;
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+.audio-switch[aria-checked="true"] {
+  border-color: #8ab990;
+  background: #24392d;
+}
+.audio-switch[aria-checked="true"] span {
+  transform: translateX(16px);
+  background: var(--mint);
+}
+.audio-volume {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 11px;
+}
+.audio-volume input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  height: 5px;
+  margin: 12px 0;
+  border: 0;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    #b3efb0 0 var(--volume),
+    #51475e var(--volume) 100%
+  );
+}
+.audio-volume input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 17px;
+  background: #ece4f2;
+  border: 2px solid #20212f;
+  box-shadow: 0 0 0 1px #b7a7c9;
+}
+.audio-volume input[type="range"]::-moz-range-thumb {
+  border-radius: 0;
+  width: 9px;
+  height: 14px;
+  background: #ece4f2;
+  border: 2px solid #20212f;
+  box-shadow: 0 0 0 1px #b7a7c9;
+}
+.audio-volume output {
+  min-width: 36px;
+  font-size: 11px;
+  color: #b9aec9;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.audio-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@keyframes audio-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 650px) {
+  .audio-trigger {
+    min-height: 38px;
+    padding: 6px 8px;
+    gap: 5px;
+  }
+  .audio-trigger > span {
+    display: none;
+  }
+  .audio-popover {
+    position: fixed;
+    right: 12px;
+    top: 76px;
+    width: min(290px, calc(100vw - 24px));
+  }
+}

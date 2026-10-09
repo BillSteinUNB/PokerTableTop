@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { gameClient } from "./services/gameClient.js";
 import { audio } from "./services/audio.js";
-import { readLocal, saveLocal, useTable, run } from "./services/ui.js";
+import { useTable, run } from "./services/ui.js";
 import { Suit } from "./components/PixelArt.jsx";
 import Home from "./components/Home.jsx";
 import Help from "./components/Help.jsx";
@@ -10,6 +10,7 @@ import Lobby from "./components/Lobby.jsx";
 import Table from "./components/Table.jsx";
 import Results from "./components/Results.jsx";
 import Modal from "./components/Modal.jsx";
+import AudioControls from "./components/AudioControls.jsx";
 import "./App.css";
 
 export default function App() {
@@ -20,14 +21,17 @@ export default function App() {
   const [setup, setSetup] = useState(invite ? { mode: "join" } : null);
   const [help, setHelp] = useState(false);
   const [leave, setLeave] = useState(false);
-  const [sound, setSound] = useState(() => readLocal("poker-sound", false));
   useEffect(() => {
     gameClient.boot();
   }, []);
   useEffect(() => {
-    audio.setEnabled(sound);
-    saveLocal("poker-sound", sound);
-  }, [sound]);
+    audio.start();
+    return () => audio.stop();
+  }, []);
+  const atTable = !!state.game && state.game.street !== "finished";
+  useEffect(() => {
+    audio.setTableActive(atTable);
+  }, [atTable]);
   const connected =
     state.connection === "connected" || state.connection === "local";
   const openSetup = (mode, avatar) => {
@@ -66,18 +70,7 @@ export default function App() {
           <button className="nav-button" onClick={() => setHelp(true)}>
             HOW TO PLAY <span>?</span>
           </button>
-          <button
-            className="icon-button sound-button"
-            onClick={() => {
-              audio.unlock();
-              setSound(!sound);
-            }}
-            aria-label={sound ? "Mute sounds" : "Enable sounds"}
-            aria-pressed={sound}
-          >
-            {sound ? "♫" : "♪"}
-            <small>{sound ? "ON" : "OFF"}</small>
-          </button>
+          <AudioControls atTable={atTable} />
           {state.room && (
             <button
               className="nav-button leave-button"

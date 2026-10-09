@@ -17,7 +17,9 @@ For a phone or another computer on the same Wi-Fi, open the **Network** address 
 
 ## What’s in this version
 
-- A custom pixel-art clubhouse, eight original code-native animal sprites, pixel suits/cards, chip-scoop and dealing animations, winner feedback, and optional synthesized arcade sounds.
+- A custom pixel-art clubhouse, eight original code-native animal sprites, a complete pixel card deck with suit pips and court art, smooth dealing/chip animations, and responsive table layouts.
+- Stable betting controls with an amount slider, pot presets, clear validation, and all-in confirmation.
+- Original quiet arcade jazz during play, with separate music/effects toggles and volume controls in **Audio**. Preferences are saved; music pauses in hidden tabs and stops when leaving the table. Browser audio starts after an interaction.
 - A responsive lobby and table, room invitations, readiness, configurable pace, chat, reactions, recent hand history, a hand-strength hint, and an in-game poker primer.
 - One shared rules engine for multiplayer and practice. Stacks carry between hands; blinds rotate correctly, including heads-up and dead-button progression after eliminations.
 - Side pots, short calls, minimum raises, cumulative short all-ins, uncalled-chip refunds, board runouts, ties, and clockwise odd-chip awards.
