@@ -1,308 +1,144 @@
-# 🎮 Poker Game - Online Deployment Guide
+# Vercel + Northflank setup
 
-This guide will help you host your poker game online so you and your friends can play together from anywhere!
+Vercel serves the frontend. Browsers connect directly to the Northflank Node server for multiplayer. PostgreSQL on Northflank stores room recovery data. Friends use the Vercel link; they don't need accounts on either host.
 
-## 📋 Table of Contents
-1. [Quick Start (Easiest)](#quick-start-easiest)
-2. [Option 1: Deploy to Render (Recommended - Free)](#option-1-deploy-to-render-recommended---free)
-3. [Option 2: Deploy to Railway (Alternative - Free)](#option-2-deploy-to-railway-alternative---free)
-4. [Option 3: Deploy to Your Own Server](#option-3-deploy-to-your-own-server)
-5. [Testing Your Deployment](#testing-your-deployment)
+## What you need
 
----
+- This repository pushed to GitHub, GitLab, or another Git provider supported by both hosts. Commit the code, root lockfile, Dockerfile, and `vercel.json`; leave `.env`, `.data`, and `output` private.
+- Vercel and Northflank accounts connected to that repository.
+- One Northflank service and one PostgreSQL addon in the same project/region.
 
-## Quick Start (Easiest)
+As checked on October 9, 2026, Northflank's [Sandbox tier](https://northflank.com/pricing) includes two always-on services and one free database. Select the resources marked free in the dashboard. Northflank requires a payment method for verification even for free resources; see its [billing documentation](https://northflank.com/docs/v1/application/billing/pricing-on-northflank). Vercel's Hobby plan is suitable for this personal frontend. No custom domain is required.
 
-The easiest way to host your game is using **Render.com** (free tier). Here's what you'll do:
-1. Push your code to GitHub
-2. Deploy the server to Render
-3. Deploy the client to Render (or Vercel/Netlify)
-4. Share the link with your friends!
+## 1. Create the database on Northflank
 
----
+1. Create a project and choose a region near your group.
+2. Add a **PostgreSQL** addon using the free allocation. PostgreSQL 17 is used in CI; newer supported versions should also work.
+3. Enable **TLS**. Keep the database private, accessible within the project.
+4. Create a runtime secret group linked to this addon. Alias its internal, direct primary **`POSTGRES_URI`** secret to **`DATABASE_URL`**. Apply the group to the game service created below. Use the normal database user, not the admin URI or a connection pooler.
 
-## Option 1: Deploy to Render (Recommended - Free)
+The app creates its `poker_state` table automatically. There is no manual migration command. This is a fresh hosted game environment: local `.data/rooms.json` rooms are not imported automatically.
 
-### Prerequisites
-- GitHub account
-- Render account (free at [render.com](https://render.com))
+References: [PostgreSQL addon setup](https://northflank.com/docs/v1/application/databases-and-persistence/deploy-databases-on-northflank/deploy-postgresql-on-northflank), [private access and TLS](https://northflank.com/docs/v1/application/databases-and-persistence/access-a-database).
 
-### Step 1: Prepare Your Code
+## 2. Create the game service on Northflank
 
-First, let's create the necessary configuration files:
+Create a **combined service** from the repository so Northflank builds and runs it.
 
-#### 1.1 Create `.gitignore` (if not exists)
-Make sure you have a `.gitignore` file in your root directory with:
-```
-node_modules/
-dist/
-.env
-.DS_Store
-*.log
-```
+| Setting                       | Value                                           |
+| ----------------------------- | ----------------------------------------------- |
+| Repository branch             | The branch containing these changes             |
+| Build method                  | Dockerfile                                      |
+| Build context                 | Repository root (`/`)                           |
+| Dockerfile                    | `/Dockerfile`                                   |
+| Runtime command               | Leave the image default: `node server/index.js` |
+| Instances                     | **1**, with autoscaling disabled                |
+| Compute                       | Free Sandbox service allocation                 |
+| Public port                   | **3001**, HTTP protocol                         |
+| HTTP readiness/liveness check | `/api/ready` on port 3001                       |
 
-#### 1.2 Update server CORS settings
-Your server needs to accept connections from your deployed frontend. We'll handle this with environment variables.
+Add these **runtime** variables and the database secret group:
 
-### Step 2: Push to GitHub
+| Variable       | Value                                                        |
+| -------------- | ------------------------------------------------------------ |
+| `NODE_ENV`     | `production`                                                 |
+| `PORT`         | `3001`                                                       |
+| `DATABASE_URL` | Linked internal `POSTGRES_URI` secret from step 1            |
+| `PGSSLMODE`    | `verify-full`                                                |
+| `CLIENT_URL`   | Your exact Vercel production origin, once step 3 supplies it |
 
-```bash
-# Initialize git (if not already done)
-git init
+You can leave `CLIENT_URL` unset for the first server deployment, then add it in step 4. Database secrets belong in the runtime environment only. The Docker build runs lint/tests and builds the client without production credentials.
 
-# Add all files
-git add .
+Enable public access for port 3001. Northflank supplies an HTTPS address ending in `code.run`; copy the **origin only**, such as `https://your-game-server.code.run`. Northflank handles HTTPS and WebSocket upgrades. Do not append `:3001` or `/socket.io` to the public address.
 
-# Commit
-git commit -m "Prepare for deployment"
+Open `https://YOUR-SERVER.code.run/api/ready`. It should return:
 
-# Create a new repository on GitHub, then:
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-git branch -M main
-git push -u origin main
+```json
+{ "ok": true, "storage": "postgres" }
 ```
 
-### Step 3: Deploy the Server to Render
+The server refuses production startup without `DATABASE_URL` or an explicitly configured persistent file. An incorrect database URL fails startup rather than falling back to temporary storage.
 
-1. **Go to [render.com](https://render.com)** and sign in
-2. **Click "New +" → "Web Service"**
-3. **Connect your GitHub repository**
-4. **Configure the service:**
-   - **Name:** `poker-game-server` (or any name you like)
-   - **Region:** Choose closest to you
-   - **Root Directory:** `server`
-   - **Runtime:** `Node`
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-   - **Instance Type:** `Free`
+Reference: [Northflank networking](https://northflank.com/docs/v1/application/network/networking-on-northflank).
 
-5. **Add Environment Variables:**
-   - Click "Advanced" → "Add Environment Variable"
-   - Add: `PORT` = `10000` (Render uses this port)
-   - Add: `NODE_ENV` = `production`
+## 3. Deploy the frontend on Vercel
 
-6. **Click "Create Web Service"**
+Import the same repository into Vercel. Use the **repository root**, not `src` or `server`. The included `vercel.json` sets:
 
-7. **Wait for deployment** (takes 2-5 minutes)
+| Setting          | Value                             |
+| ---------------- | --------------------------------- |
+| Framework        | Vite                              |
+| Install command  | `npm ci`                          |
+| Build command    | `npm run build`                   |
+| Output directory | `dist`                            |
+| Node version     | 24.x (select in project settings) |
 
-8. **Copy your server URL** - it will look like: `https://poker-game-server.onrender.com`
+Before deploying, add this **Production** environment variable:
 
-### Step 4: Deploy the Client to Render
-
-1. **Click "New +" → "Static Site"**
-2. **Connect the same GitHub repository**
-3. **Configure:**
-   - **Name:** `poker-game-client`
-   - **Root Directory:** Leave blank (root)
-   - **Build Command:** `npm install && npm run build`
-   - **Publish Directory:** `dist`
-
-4. **Add Environment Variable:**
-   - Click "Advanced" → "Add Environment Variable"
-   - Add: `VITE_SERVER_URL` = `https://poker-game-server.onrender.com` (your server URL from Step 3)
-
-5. **Click "Create Static Site"**
-
-6. **Wait for deployment**
-
-7. **Your game is live!** Copy the URL (e.g., `https://poker-game-client.onrender.com`)
-
-### Step 5: Update Your Code for Production
-
-You need to update your client code to use the server URL from environment variables.
-
----
-
-## Option 2: Deploy to Railway (Alternative - Free)
-
-Railway is another great option with a generous free tier.
-
-### Step 1: Push to GitHub (same as Option 1, Step 2)
-
-### Step 2: Deploy to Railway
-
-1. **Go to [railway.app](https://railway.app)** and sign in with GitHub
-2. **Click "New Project" → "Deploy from GitHub repo"**
-3. **Select your repository**
-4. **Railway will detect both the client and server**
-
-For the **Server**:
-- **Root Directory:** `server`
-- **Start Command:** `npm start`
-- **Add Environment Variable:** `PORT` (Railway auto-assigns this)
-
-For the **Client**:
-- **Root Directory:** `.` (root)
-- **Build Command:** `npm run build`
-- **Start Command:** `npm run preview` (or use Vite preview)
-
-Railway will give you URLs for both services.
-
----
-
-## Option 3: Deploy to Your Own Server
-
-If you have your own server (VPS, cloud instance, etc.):
-
-### Requirements
-- Linux server with Node.js installed
-- Domain name (optional but recommended)
-- SSH access
-
-### Steps
-
-1. **SSH into your server:**
-```bash
-ssh user@your-server-ip
+```text
+VITE_SERVER_URL=https://YOUR-SERVER.code.run
 ```
 
-2. **Install Node.js (if not installed):**
-```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
+This URL is public and is included in the browser bundle. Never put database credentials in Vercel or any variable prefixed with `VITE_`.
+
+Deploy and copy the stable production origin, for example `https://your-project.vercel.app`. Use the production domain rather than a commit-specific preview URL.
+
+Reference: [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite).
+
+## 4. Allow the frontend to connect
+
+Set Northflank's `CLIENT_URL` to the Vercel production origin and apply the environment change:
+
+```text
+CLIENT_URL=https://your-project.vercel.app
 ```
 
-3. **Clone your repository:**
-```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-cd YOUR_REPO_NAME
+Use the full `https://` origin with no path. If you later add a custom domain, include both origins separated by commas. The server normalizes a trailing slash.
+
+For Vercel previews, also set `VITE_SERVER_URL` for the Preview environment and explicitly allow each preview origin on the server. Otherwise use the stable production link for multiplayer. Avoid a wildcard allowlist covering all Vercel projects.
+
+Changing `VITE_SERVER_URL` requires a new **Vercel build/deployment**. Changing `CLIENT_URL` requires a **Northflank restart/deployment**.
+
+## 5. Check a hosted game
+
+1. Open the Vercel link in two separate tabs or devices.
+2. Create a room, join with the second player, ready up, and deal a hand.
+3. Check that both players see the same board and stacks, but only their own cards.
+4. Refresh one tab: it should return to its seat.
+5. Restart the Northflank service with those tabs still open. The game should reconnect with the same room, hands, and stacks. The turn clock restarts when a player reconnects.
+
+Keep the same tabs open to retain seat tokens. Closing a tab or clearing browser storage can lose a seat; accounts and cross-device seat recovery are not implemented.
+
+## Recovery and deployments
+
+Every room mutation is saved before a success acknowledgement or updated snapshot is sent. Database failures stop gameplay, fail readiness, and cause the production process to exit so the host can restart it. It resumes from the last saved snapshot; it never silently switches to file storage.
+
+Run **one game-server instance**. During replacement, the new process claims the database snapshot. Conditional writes prevent the old process from overwriting it; the old process disconnects its clients when it detects replacement. This protects room state during deployment overlap, but does not provide horizontal scaling or promise uninterrupted connections. Prefer deploying between games.
+
+PostgreSQL stores the private deck, hands, stacks, bounded chat/hand history, settings, and hashed seat tokens. Keep it private and arrange database backups if you want protection against deleting the addon. Idle rooms expire after 24 hours. Recovery snapshots are not permanent season statistics.
+
+## Troubleshooting
+
+| Symptom                                     | Check                                                                                                                                           |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vercel build asks for `VITE_SERVER_URL`     | Add the HTTPS server origin to the appropriate Vercel environment, then redeploy.                                                               |
+| Homepage works, multiplayer won't connect   | Confirm `/api/ready` returns `ok: true`; compare the browser origin with `CLIENT_URL`; confirm the deployed bundle used the current server URL. |
+| Server won't start                          | Confirm the runtime secret group supplies `DATABASE_URL`, both resources share the project, and TLS is enabled. Check Northflank logs.          |
+| Server repeatedly reports `SERVER_REPLACED` | Ensure only one service/instance uses this database. Don't point a local server or preview backend at the production database.                  |
+| Restart opens an empty lobby                | Check readiness reports `storage: postgres`; verify that the same database is still linked and the room wasn't idle for 24 hours.               |
+
+## Local development and other hosts
+
+`npm run dev` still uses the Vite proxy and `.data/rooms.json` without requiring PostgreSQL. To exercise database recovery locally, use a separate development database and set `DATABASE_URL`. File storage remains available on other hosts via `POKER_DATA_FILE` on a writable persistent volume.
+
+For a single-origin Docker deployment with file recovery:
+
+```sh
+docker build -t pixel-poker .
+docker volume create pixel-poker-data
+docker run --rm -p 3001:3001 -e POKER_DATA_FILE=/app/.data/rooms.json -v pixel-poker-data:/app/.data --name pixel-poker pixel-poker
 ```
 
-4. **Install and build the client:**
-```bash
-npm install
-npm run build
-```
+The image runs as the unprivileged Node user. Put an HTTPS reverse proxy in front of it for internet use. The local dev proxy expects server port 3001.
 
-5. **Install and start the server:**
-```bash
-cd server
-npm install
-npm start
-```
-
-6. **Use PM2 to keep server running:**
-```bash
-sudo npm install -g pm2
-pm2 start index.js --name poker-server
-pm2 startup
-pm2 save
-```
-
-7. **Set up Nginx as reverse proxy** (optional but recommended):
-```bash
-sudo apt install nginx
-```
-
-Create Nginx config at `/etc/nginx/sites-available/poker`:
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    # Client (static files)
-    location / {
-        root /path/to/YOUR_REPO_NAME/dist;
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Server (WebSocket + API)
-    location /socket.io/ {
-        proxy_pass http://localhost:3002;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-    }
-}
-```
-
-Enable the site:
-```bash
-sudo ln -s /etc/nginx/sites-available/poker /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
----
-
-## Testing Your Deployment
-
-### 1. Test the Server
-Visit your server URL in a browser. You should see a basic response or connection message.
-
-### 2. Test the Client
-1. Open your client URL
-2. Create a lobby
-3. Copy the lobby code
-4. Open the same URL in a different browser/incognito window
-5. Join with the lobby code
-6. Start the game!
-
-### 3. Test with Friends
-Share your client URL with friends. They can:
-1. Open the URL
-2. Enter their name
-3. Join your lobby with the code
-4. Play!
-
----
-
-## 🔧 Troubleshooting
-
-### Server won't connect
-- Check that CORS is configured correctly
-- Verify the server URL in your client environment variables
-- Check server logs for errors
-
-### WebSocket connection fails
-- Make sure your hosting provider supports WebSockets
-- Check that the Socket.io client is connecting to the correct URL
-- Verify firewall/security group settings
-
-### Game doesn't load
-- Check browser console for errors
-- Verify the build completed successfully
-- Check that environment variables are set correctly
-
----
-
-## 📱 Sharing with Friends
-
-Once deployed, share this with your friends:
-
-**"Hey! Let's play poker! 🎮"**
-
-1. Go to: `https://your-game-url.com`
-2. Enter your name
-3. Either:
-   - Click "Create Lobby" (if you're hosting)
-   - Click "Join Lobby" and enter code: `XXXXXX`
-4. Wait for everyone to join
-5. Host clicks "Start Game"
-6. Have fun! 🎉
-
----
-
-## 💰 Cost Breakdown
-
-### Free Options:
-- **Render Free Tier:** 750 hours/month (enough for occasional games)
-- **Railway Free Tier:** $5 credit/month (usually enough)
-- **Vercel/Netlify (Client only):** Unlimited for personal projects
-
-### Paid Options (if you need 24/7 uptime):
-- **Render Starter:** $7/month
-- **Railway:** Pay as you go (~$5-10/month)
-- **DigitalOcean Droplet:** $6/month
-
----
-
-## 🚀 Next Steps
-
-1. Choose your deployment option
-2. Follow the steps above
-3. Test with a friend
-4. Share and enjoy!
-
-Need help? Check the logs or create an issue on GitHub!
+`npm run check` runs lint, the test suite, and the production build. PostgreSQL integration tests run when **`TEST_DATABASE_URL`** points to a disposable test database; they create and clean up an isolated schema. They never use `DATABASE_URL`. CI starts PostgreSQL 17, runs those checks, and builds the Docker image.

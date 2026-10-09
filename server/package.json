@@ -1,17 +1,15 @@
 {
-  "name": "poker-server",
-  "version": "1.0.0",
-  "description": "Backend server for multiplayer poker game",
-  "main": "index.js",
+  "name": "pixel-poker-server",
+  "version": "2.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js",
-    "build": "echo 'No build step required for server'"
+    "dev": "node --watch index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.6.1",
-    "cors": "^2.8.5"
+    "express": "^5.1.0",
+    "pg": "^8.23.1",
+    "socket.io": "^4.8.1"
   }
 }
