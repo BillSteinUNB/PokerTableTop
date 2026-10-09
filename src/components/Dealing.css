@@ -1,0 +1,43 @@
+.table-stage .playing-card {
+  animation: none;
+}
+
+.deal-deck {
+  position: absolute;
+  left: calc(50% - 112px);
+  top: 29%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.deal-deck .playing-card {
+  width: 30px;
+  height: 42px;
+  filter: drop-shadow(0 2px 0 #d7d4c6) drop-shadow(0 2px 0 #17372f)
+    drop-shadow(1px 3px 0 #10221f80);
+}
+
+.deal-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.deal-layer .deal-flight {
+  position: absolute;
+  margin: 0;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+@media (max-width: 600px) {
+  .deal-deck {
+    left: calc(50% - 55px);
+    top: 36%;
+  }
+  .deal-deck .playing-card {
+    width: 23px;
+    height: 32px;
+  }
+}

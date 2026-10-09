@@ -20,6 +20,7 @@ For a phone or another computer on the same Wi-Fi, open the **Network** address 
 - A custom pixel-art clubhouse, 20 original pixel characters (14 animals and six people), a complete pixel card deck with suit pips and court art, smooth dealing/chip animations, and responsive table layouts.
 - A character picker with named previews, category filters, and keyboard navigation. Showdown highlights mark each winner’s best cards, with individual payouts shown below the table.
 - Stable betting controls with an amount slider, pot presets, clear validation, and all-in confirmation.
+- Cards deal from the deck in two clockwise rounds, with a quiet paper flick per card and a quick reveal on arrival. Community cards animate as they arrive; reduced-motion mode shows cards immediately.
 - Three original table-music choices in **Audio**: traditional piano-trio jazz (default), atmospheric jazz with soft keys and pads, and the original arcade track. Track choice, independent music/effects toggles, and volumes are saved. Switching tracks fades between arrangements; music pauses in hidden tabs and stops when leaving the table. Browser audio starts after an interaction.
 - Home and lobby layouts expand across wide displays, with proportional artwork, controls, and seat grids while retaining compact phone layouts.
 - A responsive lobby and table, room invitations, readiness, configurable pace, chat, reactions, recent hand history, a hand-strength hint, and an in-game poker primer.

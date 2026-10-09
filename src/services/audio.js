@@ -1,5 +1,6 @@
 import { renderVoice } from "./musicScore.js";
 import { getMusicTrack } from "./musicTracks.js";
+import { renderCardSound } from "./cardSound.js";
 
 const STORAGE_KEY = "poker-audio-v2";
 const defaults = {
@@ -332,13 +333,15 @@ export const audio = {
   play(kind) {
     if (
       !preferences.effects ||
+      preferences.effectsVolume <= 0 ||
       !context ||
       context.state !== "running" ||
       document.hidden
     )
       return;
     const now = context.currentTime;
-    if (now - (cooldown.get(kind) ?? -Infinity) < 0.12) return;
+    const delay = kind === "deal" ? 0.045 : 0.12;
+    if (now - (cooldown.get(kind) ?? -Infinity) < delay) return;
     cooldown.set(kind, now);
     const render = (voice, note, offset, length, velocity = 1, pan = 0) =>
       renderVoice(
@@ -349,8 +352,7 @@ export const audio = {
         track(effectsSources),
       );
     if (kind === "deal") {
-      render("card", 0, 0, 0.06, 0.6, -0.12);
-      render("card", 0, 0.085, 0.06, 0.45, 0.12);
+      renderCardSound(context, effectsGain, now, track(effectsSources));
     } else if (kind === "bet") {
       render("chip", 0, 0, 0.025, 0.65);
       render("effect", 83, 0.014, 0.06, 0.22);

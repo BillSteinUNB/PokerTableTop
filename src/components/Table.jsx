@@ -9,10 +9,12 @@ import {
 import { gameClient } from "../services/gameClient.js";
 import { audio } from "../services/audio.js";
 import { isWinningCard } from "../services/winningCards.js";
+import { useDealAnimation } from "../services/useDealAnimation.js";
 import { Avatar, Card, ChipStack, Suit } from "./PixelArt.jsx";
 import Controls from "./Controls.jsx";
 import ChatPanel from "./ChatPanel.jsx";
 import TableActions from "./TableActions.jsx";
+import "./Dealing.css";
 
 // Phones reserve the middle for a single, readable row of community cards.
 const phoneSeats = {
@@ -68,9 +70,12 @@ export default function Table() {
     ...game.players.slice(0, myIndex),
   ];
   const [flights, setFlights] = useState([]);
-  useEffect(() => {
-    audio.play("deal");
-  }, []);
+  const stageRef = useRef(null);
+  useDealAnimation(
+    stageRef,
+    game,
+    state.connection === "connected" || state.connection === "local",
+  );
   useEffect(() => {
     if (!flights.length) return;
     const cleanup = setTimeout(() => setFlights([]), 650);
@@ -99,11 +104,8 @@ export default function Table() {
     if (prev.current.street !== game.street && game.street === "showdown")
       audio.play("win");
     else if (
-      prev.current.hand !== game.handNumber ||
-      prev.current.street !== game.street
-    )
-      audio.play("deal");
-    else if (
+      prev.current.hand === game.handNumber &&
+      prev.current.street === game.street &&
       prev.current.actor !== game.actor &&
       game.players[game.actor]?.id === playerId
     )
@@ -148,7 +150,7 @@ export default function Table() {
       <TableActions />
       <div className="table-layout">
         <section className="play-area" aria-label="Poker table">
-          <div className={`table-stage seats-${players.length}`}>
+          <div className={`table-stage seats-${players.length}`} ref={stageRef}>
             <div className="table-floor" />
             {flights.map((id) => {
               const index = players.findIndex((p) => p.id === id);
@@ -178,6 +180,10 @@ export default function Table() {
                 </div>
               </div>
             </div>
+            <div className="deal-deck" aria-hidden="true">
+              <Card />
+            </div>
+            <div className="deal-layer" aria-hidden="true" />
             <div className="community">
               <div className="pot">
                 <span className="eyebrow">
@@ -194,7 +200,8 @@ export default function Table() {
               <div className="community-cards">
                 {Array.from({ length: 5 }, (_, i) => (
                   <Card
-                    key={`${game.handNumber}-${i}-${!!game.board[i]}`}
+                    key={`${game.handNumber}-${i}`}
+                    dealKey={`board-${i}`}
                     card={game.board[i]}
                     ghost={!game.board[i]}
                     index={game.street === "flop" ? i : 0}
@@ -291,7 +298,8 @@ export default function Table() {
                     {player.hand.map((card, n) => (
                       <Card
                         card={card}
-                        key={`${game.handNumber}-${n}-${!!card}`}
+                        key={`${game.handNumber}-${n}`}
+                        dealKey={`hole-${player.id}-${n}`}
                         index={n}
                         small={!self}
                         winner={isWinningCard(result, card, player.id)}

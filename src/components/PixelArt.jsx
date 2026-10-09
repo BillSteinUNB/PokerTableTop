@@ -26,12 +26,14 @@ export function Card({
   small = false,
   ghost = false,
   winner = false,
+  dealKey,
 }) {
   const red = card && ["hearts", "diamonds"].includes(card.suit);
   return (
     <div
       className={`playing-card ${small ? "small" : ""} ${ghost ? "ghost" : card ? "face" : "back"} ${red ? "red" : ""} ${winner ? "winning-card" : ""}`}
       style={{ "--card-index": index }}
+      data-deal-key={dealKey}
       role="img"
       aria-label={
         ghost
