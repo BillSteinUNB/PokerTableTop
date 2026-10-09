@@ -1,9 +1,11 @@
-import { BAR_LENGTH, BEAT, renderVoice, scoreBar } from "./musicScore.js";
+import { renderVoice } from "./musicScore.js";
+import { getMusicTrack } from "./musicTracks.js";
 
 const STORAGE_KEY = "poker-audio-v2";
 const defaults = {
   music: true,
   effects: true,
+  musicTrack: "jazz",
   musicVolume: 0.32,
   effectsVolume: 0.6,
 };
@@ -19,6 +21,7 @@ function readPreferences() {
         music: typeof saved.music === "boolean" ? saved.music : defaults.music,
         effects:
           typeof saved.effects === "boolean" ? saved.effects : defaults.effects,
+        musicTrack: getMusicTrack(saved.musicTrack).id,
         musicVolume: clamp(saved.musicVolume, defaults.musicVolume),
         effectsVolume: clamp(saved.effectsVolume, defaults.effectsVolume),
       };
@@ -40,11 +43,8 @@ let tableActive = false;
 let started = false;
 let musicPlaying = false;
 let unlocked = false;
-let nextBar = 0;
-let nextEvent = 0;
-let barStart = 0;
-let events = [];
-const musicSources = new Set();
+let playback;
+const retiring = new Set();
 const effectsSources = new Set();
 const listeners = new Set();
 const cooldown = new Map();
@@ -86,40 +86,60 @@ function track(set) {
   };
 }
 
-function schedule() {
-  if (!musicPlaying || !context || context.state !== "running") return;
+function schedule(current) {
+  if (playback !== current || !context || context.state !== "running") return;
+  const { arrangement } = current;
   // A stalled browser skips ahead rather than playing a backlog of notes.
-  if (barStart + BAR_LENGTH < context.currentTime) {
-    barStart = context.currentTime + 0.06;
-    nextEvent = 0;
-    events = scoreBar(nextBar);
+  if (current.barStart + arrangement.barLength < context.currentTime) {
+    current.barStart = context.currentTime + 0.06;
+    current.nextEvent = 0;
+    current.events = arrangement.scoreBar(current.nextBar);
   }
   while (
-    barStart + events[nextEvent].beat * BEAT <
+    current.barStart +
+      current.events[current.nextEvent].beat * arrangement.beat <
     context.currentTime + 0.18
   ) {
-    const event = events[nextEvent];
-    const time = barStart + event.beat * BEAT;
+    const event = current.events[current.nextEvent];
+    const time = current.barStart + event.beat * arrangement.beat;
     if (time >= context.currentTime)
-      renderVoice(context, musicGain, event, time, track(musicSources));
-    nextEvent++;
-    if (nextEvent === events.length) {
-      nextEvent = 0;
-      nextBar++;
-      barStart += BAR_LENGTH;
-      events = scoreBar(nextBar);
+      arrangement.renderVoice(
+        context,
+        current.gain,
+        event,
+        time,
+        track(current.sources),
+      );
+    current.nextEvent++;
+    if (current.nextEvent === current.events.length) {
+      current.nextEvent = 0;
+      current.nextBar++;
+      current.barStart += arrangement.barLength;
+      current.events = arrangement.scoreBar(current.nextBar);
     }
   }
+}
+
+function disposePlayback(current) {
+  clearTimeout(current.cleanup);
+  // Disconnect even if a hidden tab suspended the audio clock during the fade.
+  current.gain.disconnect();
+  current.sources.forEach((stop) => stop());
+  current.sources.clear();
+  retiring.delete(current);
 }
 
 function stopMusic() {
   clearInterval(scheduler);
   scheduler = undefined;
-  if (!musicPlaying) return;
+  if (!playback) return;
+  const current = playback;
+  playback = undefined;
   musicPlaying = false;
-  fade(musicGain.gain, 0);
-  // Scheduled voices finish under the fade. On resume, old voices are cleared
-  // before the bus opens again, including when the browser suspended its clock.
+  fade(current.gain.gain, 0);
+  current.fadeEnd = context.currentTime + 0.18;
+  retiring.add(current);
+  current.cleanup = setTimeout(() => disposePlayback(current), 200);
   publish();
 }
 
@@ -142,17 +162,40 @@ function syncPlayback() {
     0.04,
   );
   if (!shouldPlay) stopMusic();
-  else if (!musicPlaying) {
-    musicSources.forEach((stop) => stop());
-    musicSources.clear();
+  else {
+    if (playback?.arrangement.id !== preferences.musicTrack) stopMusic();
+    fade(musicGain.gain, preferences.musicVolume);
+    if (playback) {
+      publish();
+      return;
+    }
+    const arrangement = getMusicTrack(preferences.musicTrack);
+    const gain = context.createGain();
+    gain.gain.value = 0;
+    gain.connect(musicGain);
+    // Give the previous arrangement time to fade completely before opening a
+    // fresh bus. Rapid changes cannot reopen old voices or share a scheduler.
+    const barStart =
+      Math.max(
+        context.currentTime,
+        ...[...retiring].map((old) => old.fadeEnd),
+      ) + 0.08;
+    gain.gain.setValueAtTime(0, barStart);
+    gain.gain.linearRampToValueAtTime(1, barStart + 0.6);
+    playback = {
+      arrangement,
+      gain,
+      sources: new Set(),
+      barStart,
+      nextBar: 0,
+      nextEvent: 0,
+      events: arrangement.scoreBar(0),
+    };
     musicPlaying = true;
-    barStart = context.currentTime + 0.08;
-    nextEvent = 0;
-    events = scoreBar(nextBar);
-    fade(musicGain.gain, preferences.musicVolume, 0.6);
-    schedule();
-    scheduler = setInterval(schedule, 50);
-  } else fade(musicGain.gain, preferences.musicVolume);
+    const current = playback;
+    schedule(current);
+    scheduler = setInterval(() => schedule(current), 50);
+  }
   publish();
 }
 
@@ -193,9 +236,8 @@ export const audio = {
     document.removeEventListener("pointerdown", audio.unlock);
     document.removeEventListener("keydown", audio.unlock);
     document.removeEventListener("visibilitychange", onVisibility);
-    musicSources.forEach((stop) => stop());
+    [...retiring].forEach(disposePlayback);
     effectsSources.forEach((stop) => stop());
-    musicSources.clear();
     effectsSources.clear();
     cooldown.clear();
     if (context) {
@@ -218,6 +260,10 @@ export const audio = {
         typeof changes.effects === "boolean"
           ? changes.effects
           : preferences.effects,
+      musicTrack:
+        changes.musicTrack === undefined
+          ? preferences.musicTrack
+          : getMusicTrack(changes.musicTrack).id,
       musicVolume: clamp(changes.musicVolume, preferences.musicVolume),
       effectsVolume: clamp(changes.effectsVolume, preferences.effectsVolume),
     };
@@ -322,4 +368,9 @@ export const audio = {
   },
 };
 
-if (import.meta.hot) import.meta.hot.dispose(() => audio.stop());
+// Restart the app when the player or its scores change so mounted React effects
+// cannot retain a disposed player while a second service instance is imported.
+if (import.meta.hot) {
+  import.meta.hot.accept(() => window.location.reload());
+  import.meta.hot.dispose(() => audio.stop());
+}

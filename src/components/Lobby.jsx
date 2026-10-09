@@ -41,7 +41,15 @@ export default function Lobby() {
               </button>
             )}
           </div>
-          <div className="lobby-seats">
+          <div
+            className="lobby-seats"
+            style={{
+              "--lobby-columns":
+                room.settings.maxPlayers > 6
+                  ? 4
+                  : Math.min(room.settings.maxPlayers, 3),
+            }}
+          >
             {Array.from({ length: room.settings.maxPlayers }, (_, i) => {
               const p = room.players[i];
               return p ? (

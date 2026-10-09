@@ -44,6 +44,10 @@
   right: 0;
   top: calc(100% + 13px);
   width: 290px;
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   padding: 16px;
   border: 1px solid #5b526c;
   background: #20212f;
@@ -171,6 +175,69 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+.audio-tracks {
+  min-width: 0;
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+.audio-tracks legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: #b9aec9;
+  font-size: 11px;
+}
+.audio-track {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-height: 48px;
+  margin: 0;
+  padding: 9px 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.audio-track:hover {
+  background: #2b293b;
+}
+.audio-track:has(input:checked) {
+  background: #27372f;
+  border-color: #526d58;
+}
+.audio-track:has(input:focus-visible) {
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+}
+.audio-track input[type="radio"] {
+  appearance: none;
+  width: 14px;
+  min-width: 0;
+  height: 14px;
+  margin: 2px 0 0;
+  padding: 3px;
+  border: 1px solid #a99ab9;
+  border-radius: 0;
+  background: #191923;
+  background-clip: content-box;
+  cursor: pointer;
+}
+.audio-track input:checked {
+  background-color: var(--mint);
+  border-color: var(--mint);
+}
+.audio-track > span {
+  color: #eeeaf7;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.audio-track small {
+  display: block;
+  margin-top: 3px;
+  color: #aea7bd;
+  font-size: 10px;
+  font-weight: 400;
+}
 .audio-visually-hidden {
   position: absolute;
   width: 1px;
@@ -203,5 +270,6 @@
     right: 12px;
     top: 76px;
     width: min(290px, calc(100vw - 24px));
+    max-height: calc(100dvh - 88px);
   }
 }

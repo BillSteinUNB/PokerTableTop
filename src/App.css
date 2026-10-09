@@ -1820,18 +1820,183 @@ nav {
   width: 60px;
   text-align: right;
 }
-@media (min-width: 1500px) {
+@media (min-width: 901px) {
+  .home,
+  .lobby-page,
+  .app:has(> .home) > .app-header,
+  .app:has(> .lobby-page) > .app-header {
+    width: min(90%, 2800px);
+    max-width: none;
+    padding-inline: 0;
+  }
+
+  .home {
+    display: grid;
+    align-items: center;
+    min-height: calc(100svh - 98px);
+    padding-block: clamp(40px, 5vh, 80px);
+  }
+
+  .lobby-page {
+    padding-block: clamp(36px, 3.5vh, 56px);
+  }
+}
+
+@media (min-width: 1181px) {
   .hero {
-    min-height: 580px;
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+    gap: clamp(46px, 4vw, 128px);
+    min-height: 0;
   }
-  .hero-scene {
-    min-height: 580px;
-  }
+
   .hero-copy {
-    padding-top: 40px;
+    padding-block: 20px;
   }
+
   .hero h1 {
-    font-size: 39px;
+    font-size: clamp(39px, 3.15vw, 88px);
+    line-height: 1.55;
+    margin-block: 0 28px;
+  }
+
+  .hero-copy > p {
+    font-size: clamp(14px, 0.8vw, 20px);
+    margin-bottom: clamp(25px, 1.6vw, 40px);
+  }
+
+  .hero-actions {
+    gap: clamp(13px, 0.8vw, 22px);
+  }
+
+  .hero-actions .button {
+    min-height: clamp(50px, 2.65vw, 68px);
+    padding-inline: clamp(19px, 1.2vw, 34px);
+    font-size: clamp(10px, 0.55vw, 15px);
+    gap: clamp(16px, 1vw, 28px);
+  }
+
+  .hero .practice-link,
+  .hero .resume-link {
+    font-size: clamp(12px, 0.65vw, 17px);
+  }
+
+  .hero .practice-link {
+    margin-top: clamp(22px, 1.4vw, 36px);
+  }
+
+  .hero-scene {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    min-height: 500px;
+    align-self: center;
+  }
+
+  .hero-scene img {
+    object-position: center;
+  }
+
+  .lobby-layout {
+    grid-template-columns: minmax(0, 1fr) clamp(280px, 18vw, 480px);
+    gap: clamp(24px, 1.5vw, 48px);
+  }
+
+  .lobby-page .social-panel {
+    max-height: none;
+  }
+
+  .lobby-seats {
+    grid-template-columns: repeat(var(--lobby-columns, 3), minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1600px) {
+  .app:has(> .lobby-page) > .app-header {
+    height: 98px;
+  }
+
+  .lobby-page .page-intro {
+    margin-bottom: 40px;
+  }
+
+  .lobby-page .page-intro h1 {
+    font-size: clamp(32px, 1.7vw, 46px);
+  }
+
+  .lobby-page .page-intro p,
+  .lobby-start p {
+    font-size: clamp(13px, 0.65vw, 17px);
+  }
+
+  .lobby-page .share-room {
+    width: clamp(340px, 18vw, 480px);
+    justify-content: space-between;
+    padding: 22px;
+    gap: 18px;
+  }
+
+  .lobby-seats {
+    gap: clamp(16px, 1vw, 28px);
+  }
+
+  .lobby-seat {
+    min-height: clamp(230px, 20vh, 290px);
+    padding: 38px 18px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lobby-seat > .pixel-avatar {
+    width: clamp(76px, 3.75vw, 104px);
+    height: clamp(76px, 3.75vw, 104px);
+    margin-bottom: 16px;
+  }
+
+  .lobby-seat h3 {
+    font-size: clamp(14px, 0.7vw, 18px);
+  }
+
+  .lobby-seat .empty-avatar {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 20px;
+  }
+
+  .lobby-seat .player-tag,
+  .lobby-seat .ready-tag,
+  .lobby-seat h3 small,
+  .lobby-seat .text-button,
+  .lobby-seat .seat-number {
+    font-size: 10px;
+  }
+
+  .lobby-page .section-heading h2,
+  .lobby-page .section-heading .text-button {
+    font-size: 12px;
+  }
+
+  .lobby-page .table-rules {
+    padding: 26px;
+    margin-top: 28px;
+  }
+
+  .lobby-page .table-rules span {
+    font-size: 10px;
+  }
+
+  .lobby-page .table-rules b {
+    font-size: 16px;
+  }
+
+  .lobby-start {
+    margin-top: 28px;
+  }
+
+  .lobby-start .button {
+    min-height: 60px;
+    padding-inline: 30px;
+    font-size: 12px;
   }
 }
 @media (max-width: 1180px) {

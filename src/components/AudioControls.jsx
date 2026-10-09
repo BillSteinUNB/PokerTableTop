@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { audio } from "../services/audio.js";
+import { MUSIC_TRACKS } from "../services/musicTracks.js";
 import "./AudioControls.css";
 
 function SoundIcon({ muted }) {
@@ -165,6 +166,32 @@ export default function AudioControls({ atTable }) {
                     {Math.round(settings.musicVolume * 100)}%
                   </output>
                 </div>
+                <fieldset className="audio-tracks">
+                  <legend>Music track</legend>
+                  {MUSIC_TRACKS.map((track) => (
+                    <label className="audio-track" key={track.id}>
+                      <input
+                        type="radio"
+                        name={`${id}-track`}
+                        value={track.id}
+                        checked={settings.musicTrack === track.id}
+                        onChange={() =>
+                          audio.setPreferences({ musicTrack: track.id })
+                        }
+                        aria-labelledby={`${id}-track-${track.id}-name`}
+                        aria-describedby={`${id}-track-${track.id}`}
+                      />
+                      <span>
+                        <span id={`${id}-track-${track.id}-name`}>
+                          {track.name}
+                        </span>
+                        <small id={`${id}-track-${track.id}`}>
+                          {track.description}
+                        </small>
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
               </div>
               <div className="audio-channel">
                 <div className="audio-channel-heading">
