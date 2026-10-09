@@ -90,7 +90,12 @@ export async function createPokerServer(options = {}) {
 
   function serialize() {
     const data = [...rooms.values()].map((room) => {
-      const { timer: _timer, requestCache: _cache, ...rest } = room;
+      const {
+        timer: _timer,
+        timerGeneration: _generation,
+        requestCache: _cache,
+        ...rest
+      } = room;
       return {
         ...rest,
         players: room.players.map(({ socketId: _socket, ...p }) => p),
@@ -114,7 +119,10 @@ export async function createPokerServer(options = {}) {
           socketId: null,
         })),
         game: value.game ? PokerGame.restore(value.game) : null,
+        pauseAfterHand: !!(value.pauseAfterHand || value.paused),
+        paused: !!value.paused,
         timer: null,
+        timerGeneration: 0,
         requestCache: new Map(),
         deadline: null,
         nextHandAt: null,
@@ -176,6 +184,8 @@ export async function createPokerServer(options = {}) {
       hostId: room.hostId,
       settings: room.settings,
       createdAt: room.createdAt,
+      pauseAfterHand: room.pauseAfterHand,
+      paused: room.paused,
       players: room.players.map((p) => ({
         id: p.id,
         name: p.name,
@@ -212,22 +222,32 @@ export async function createPokerServer(options = {}) {
   }
   function schedule(room) {
     clearTimeout(room.timer);
+    const generation = ++room.timerGeneration;
     room.timer = null;
     room.deadline = null;
     room.nextHandAt = null;
-    if (!room.game || !connectedHumans(room).length || closing) return;
     const game = room.game;
+    if (game?.street === "finished") room.pauseAfterHand = false;
+    // A completed tournament still advances to results, even with a break queued.
+    room.paused = !!(
+      room.pauseAfterHand &&
+      game?.street === "showdown" &&
+      game.players.filter((p) => p.chips > 0).length > 1
+    );
+    if (!game || room.paused || !connectedHumans(room).length || closing) return;
     const revision = game.revision;
+    const currentTimer = () =>
+      room.game === game &&
+      game.revision === revision &&
+      room.timerGeneration === generation &&
+      !room.paused &&
+      connectedHumans(room).length > 0;
     if (game.street === "showdown") {
       room.nextHandAt = Date.now() + showdownMs;
       room.timer = setTimeout(
         () =>
           background(() => {
-            if (
-              room.game?.revision !== revision ||
-              !connectedHumans(room).length
-            )
-              return;
+            if (!currentTimer()) return;
             game.startHand();
             changed(room);
           }),
@@ -244,11 +264,7 @@ export async function createPokerServer(options = {}) {
       room.timer = setTimeout(
         () =>
           background(() => {
-            if (
-              room.game?.revision !== revision ||
-              !connectedHumans(room).length
-            )
-              return;
+            if (!currentTimer()) return;
             const legal = game.legalActions(player.id);
             const move = player.isBot
               ? chooseBotAction(game.view(player.id))
@@ -392,11 +408,14 @@ export async function createPokerServer(options = {}) {
         settings: validateSettings(settings),
         players: [player],
         game: null,
+        pauseAfterHand: false,
+        paused: false,
         chat: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         requestCache: new Map(),
         timer: null,
+        timerGeneration: 0,
         deadline: null,
         nextHandAt: null,
       };
@@ -421,9 +440,9 @@ export async function createPokerServer(options = {}) {
       );
       if (!room)
         throw new Error("Room not found. Check the six-character code.");
-      if (room.game)
+      if (room.game?.street === "finished")
         throw new Error(
-          "That table is playing. Join when the host opens a new lobby.",
+          "That game has finished. Join when the host opens a new lobby.",
         );
       if (room.players.length >= room.settings.maxPlayers)
         throw new Error("That table is full.");
@@ -439,11 +458,18 @@ export async function createPokerServer(options = {}) {
         id: randomUUID(),
         tokenHash: hash(token),
         isBot: false,
-        ready: false,
+        ready: !!room.game,
       };
+      room.game?.addPlayer(player);
       room.players.push(player);
       attach(socket, room, player);
-      changed(room);
+      // Joining never extends a live turn or the normal next-hand countdown.
+      // A newcomer can also turn a final showdown into a requested table break.
+      changed(
+        room,
+        !room.timer ||
+          (room.pauseAfterHand && room.game?.street === "showdown"),
+      );
       return snapshot(room, player.id);
     });
     on("room:resume", ({ token }) => {
@@ -525,6 +551,8 @@ export async function createPokerServer(options = {}) {
       if (room.players.some((p) => !p.connected || !p.ready))
         throw new Error("Everyone needs to be connected and ready.");
       room.game = new PokerGame(room.players, room.settings);
+      room.pauseAfterHand = false;
+      room.paused = false;
       changed(room);
     });
     on("game:action", ({ action, amount, revision }) => {
@@ -537,6 +565,7 @@ export async function createPokerServer(options = {}) {
     });
     on("game:next", ({ revision }) => {
       const { room } = requireRoom(socket, true);
+      if (room.paused) throw new Error("Resume the table before dealing.");
       if (
         !room.game ||
         room.game.street !== "showdown" ||
@@ -546,11 +575,33 @@ export async function createPokerServer(options = {}) {
       room.game.startHand();
       changed(room);
     });
+    on("game:pause", ({ paused }) => {
+      const { room } = requireRoom(socket, true);
+      if (
+        typeof paused !== "boolean" ||
+        !room.game ||
+        (!room.game.playing && room.game.street !== "showdown")
+      )
+        throw new Error("Breaks are available during an active game.");
+      if (room.pauseAfterHand === paused) return;
+      const wasPaused = room.paused;
+      room.pauseAfterHand = paused;
+      // Queueing or cancelling a break leaves the current betting clock alone.
+      changed(
+        room,
+        wasPaused ||
+          (paused &&
+            room.game.street === "showdown" &&
+            room.game.players.filter((p) => p.chips > 0).length > 1),
+      );
+    });
     on("game:rematch", () => {
       const { room } = requireRoom(socket, true);
       if (room.game?.street !== "finished")
         throw new Error("Finish the game before starting a rematch.");
       room.game = null;
+      room.pauseAfterHand = false;
+      room.paused = false;
       room.players = room.players.filter((p) => p.connected);
       room.players.forEach((p) => {
         p.ready = p.isBot || p.id === room.hostId;

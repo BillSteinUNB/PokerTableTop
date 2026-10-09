@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTable } from "../services/ui.js";
 
 export default function ShareRoom() {
@@ -6,11 +6,15 @@ export default function ShareRoom() {
   const [copied, setCopied] = useState(false);
   const [manual, setManual] = useState(false);
   const url = `${location.origin}${location.pathname}?room=${room.code}`;
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2500);
+    return () => clearTimeout(timer);
+  }, [copied]);
   async function copy() {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
     } catch {
       setManual(true);
     }
@@ -21,7 +25,7 @@ export default function ShareRoom() {
         <span className="eyebrow">ROOM CODE</span>
         <strong>{room.code}</strong>
       </div>
-      <button className="button secondary compact" onClick={copy}>
+      <button type="button" className="button secondary compact" onClick={copy}>
         {copied ? "✓ COPIED" : "COPY INVITE ↗"}
       </button>
       {manual && (

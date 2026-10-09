@@ -351,6 +351,7 @@ export const gameClient = {
   removeBot: (id) => request("room:removeBot", { id }),
   removeAway: (id) => request("room:removeAway", { id }),
   start: () => request("game:start"),
+  pause: (paused) => request("game:pause", { paused }),
   async act(action, amount) {
     if (practice && state.mode === "practice") {
       practice.act("you", action, amount, state.game.revision);

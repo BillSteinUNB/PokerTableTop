@@ -12,10 +12,13 @@ import Modal from "./Modal.jsx";
 import "./Controls.css";
 
 export default function Controls() {
-  const { game, playerId, busy, connection, mode } = useTable();
+  const { game, room, playerId, busy, connection, mode } = useTable();
   const me = game.players.find((player) => player.id === playerId);
-  const legal = game.legal;
+  const legal = room.paused ? null : game.legal;
   const disabled = busy || (mode === "online" && connection !== "connected");
+  const ending =
+    game.street === "showdown" &&
+    game.players.filter((p) => p.chips > 0).length < 2;
   const handName =
     me.hand.length === 2 && me.hand.every(Boolean) && game.board.length >= 3
       ? evaluateHand([...me.hand, ...game.board]).name
@@ -23,7 +26,7 @@ export default function Controls() {
 
   return (
     <section
-      className={`bet-panel ${legal ? "is-active" : "is-waiting"}`}
+      className={`bet-panel ${legal ? "is-active" : "is-waiting"} ${room.paused ? "is-paused" : ""}`}
       aria-label="Betting controls"
       aria-busy={busy}
     >
@@ -32,11 +35,17 @@ export default function Controls() {
           <i aria-hidden="true" />
           {legal
             ? "YOUR TURN"
-            : me.eliminatedAt
-              ? "ELIMINATED"
-              : game.street === "showdown"
-                ? "HAND COMPLETE"
-                : "WAITING"}
+            : room.paused
+              ? "TABLE PAUSED"
+              : ending
+                ? "GAME COMPLETE"
+                : me.waitingForNextHand
+                  ? "NEXT HAND"
+                  : me.eliminatedAt
+                    ? "ELIMINATED"
+                    : game.street === "showdown"
+                      ? "HAND COMPLETE"
+                      : "WAITING"}
         </span>
         {handName && <span className="bet-hand-name">{handName}</span>}
       </div>
@@ -56,22 +65,36 @@ export default function Controls() {
             <i />
           </span>
           <b>
-            {game.street === "showdown"
-              ? "The next hand is up soon."
-              : me.eliminatedAt
-                ? "You’re out of chips. You can keep watching."
-                : me.folded
-                  ? "You folded this hand."
-                  : me.allIn
-                    ? "You’re all in."
-                    : `${game.players[game.actor]?.name || "The table"} to act.`}
+            {room.paused
+              ? "Taking a break."
+              : ending
+                ? "Game complete."
+                : me.waitingForNextHand
+                  ? "You’re in on the next hand."
+                  : game.street === "showdown"
+                    ? "The next hand is up soon."
+                    : me.eliminatedAt
+                      ? "You’re out of chips. You can keep watching."
+                      : me.folded
+                        ? "You folded this hand."
+                        : me.allIn
+                          ? "You’re all in."
+                          : `${game.players[game.actor]?.name || "The table"} to act.`}
           </b>
           <span>
-            {game.street === "showdown"
-              ? "Your cards will be dealt automatically."
-              : me.folded || me.allIn || me.eliminatedAt
-                ? "Waiting for the hand to finish."
-                : "Your controls will appear when it’s your turn."}
+            {room.paused
+              ? me.waitingForNextHand
+                ? "Your seat is ready for the next deal."
+                : "Your chips and seat are saved."
+              : ending
+                ? "Results are up next."
+                : me.waitingForNextHand
+                  ? "Watch this hand while you wait."
+                  : game.street === "showdown"
+                    ? "Your cards will be dealt automatically."
+                    : me.folded || me.allIn || me.eliminatedAt
+                      ? "Waiting for the hand to finish."
+                      : "Your controls will appear when it’s your turn."}
           </span>
         </div>
       )}

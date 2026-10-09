@@ -22,6 +22,9 @@ For a phone or another computer on the same Wi-Fi, open the **Network** address 
 - Stable betting controls with an amount slider, pot presets, clear validation, and all-in confirmation.
 - Original quiet arcade jazz during play, with separate music/effects toggles and volume controls in **Audio**. Preferences are saved; music pauses in hidden tabs and stops when leaving the table. Browser audio starts after an interaction.
 - A responsive lobby and table, room invitations, readiness, configurable pace, chat, reactions, recent hand history, a hand-strength hint, and an in-game poker primer.
+- Friends can take an empty seat during play and watch until the next deal, when they receive cards with the normal starting stack. Invites remain available at the table; disconnected and eliminated seats stay reserved. Finished games reopen to new players through a rematch.
+- The host can queue a break after the current hand, cancel it, or resume the table. Breaks preserve seats and chips through reconnects, host changes, and server restarts; chat and invites remain available.
+- New rooms remember your last successfully saved table settings on this browser, with Standard, Fast, and Relaxed presets still available.
 - One shared rules engine for multiplayer and practice. Stacks carry between hands; blinds rotate correctly, including heads-up and dead-button progression after eliminations.
 - Side pots, short calls, minimum raises, cumulative short all-ins, uncalled-chip refunds, board runouts, ties, and clockwise odd-chip awards.
 - Server-authoritative actions and personalized snapshots. Opponent cards, session credentials, and undealt cards are never included in other players’ snapshots. Uncontested winning hands stay hidden.

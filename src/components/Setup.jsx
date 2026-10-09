@@ -1,9 +1,25 @@
 import { useState } from "react";
 import { DEFAULT_SETTINGS } from "../../shared/settings.js";
 import { gameClient } from "../services/gameClient.js";
-import { useTable, readLocal, saveLocal, run } from "../services/ui.js";
+import { useTable, readLocal, saveLocal, run, number } from "../services/ui.js";
+import {
+  readTablePreferences,
+  saveTablePreferences,
+} from "../services/tablePreferences.js";
 import Modal from "./Modal.jsx";
 import ProfilePicker from "./ProfilePicker.jsx";
+import "./Setup.css";
+
+const PRESETS = {
+  classic: DEFAULT_SETTINGS,
+  quick: {
+    ...DEFAULT_SETTINGS,
+    startingChips: 1000,
+    blindIncreaseEvery: 5,
+    turnSeconds: 20,
+  },
+  chill: { ...DEFAULT_SETTINGS, blindIncreaseEvery: 0, turnSeconds: 60 },
+};
 
 export default function Setup({ mode, onClose, initialAvatar, invite }) {
   const { busy, error } = useTable();
@@ -12,17 +28,12 @@ export default function Setup({ mode, onClose, initialAvatar, invite }) {
     ...(initialAvatar ? { avatar: initialAvatar } : {}),
   }));
   const [code, setCode] = useState(invite || "");
-  const [preset, setPreset] = useState("classic");
-  const presets = {
-    classic: DEFAULT_SETTINGS,
-    quick: {
-      ...DEFAULT_SETTINGS,
-      startingChips: 1000,
-      blindIncreaseEvery: 5,
-      turnSeconds: 20,
-    },
-    chill: { ...DEFAULT_SETTINGS, blindIncreaseEvery: 0, turnSeconds: 60 },
-  };
+  const [previousSettings] = useState(readTablePreferences);
+  const [preset, setPreset] = useState(
+    previousSettings ? "previous" : "classic",
+  );
+  const selectedSettings =
+    preset === "previous" ? previousSettings : PRESETS[preset];
   async function submit(event) {
     event.preventDefault();
     saveLocal("poker-profile", profile);
@@ -31,9 +42,10 @@ export default function Setup({ mode, onClose, initialAvatar, invite }) {
         ? gameClient.practice(profile)
         : mode === "join"
           ? gameClient.join(code, profile)
-          : gameClient.create(profile, presets[preset]),
+          : gameClient.create(profile, selectedSettings),
     );
     if (ok) {
+      if (mode === "create") saveTablePreferences(selectedSettings);
       history.replaceState(null, "", location.pathname);
       onClose();
     }
@@ -54,7 +66,7 @@ export default function Setup({ mode, onClose, initialAvatar, invite }) {
         {mode === "practice"
           ? "Play against three bots with no turn timer."
           : mode === "join"
-            ? "Enter the room code."
+            ? "Enter the room code. If a hand is running, you’ll play the next one."
             : "Choose your name, avatar, and game settings."}
       </p>
       <form onSubmit={submit}>
@@ -85,8 +97,29 @@ export default function Setup({ mode, onClose, initialAvatar, invite }) {
           <ProfilePicker profile={profile} setProfile={setProfile} />
           {mode === "create" && (
             <>
-              <span className="field-label">GAME PRESET</span>
-              <div className="preset-picker">
+              <span className="field-label" id="game-preset-label">
+                GAME PRESET
+              </span>
+              <div
+                className="preset-picker"
+                role="group"
+                aria-labelledby="game-preset-label"
+              >
+                {previousSettings && (
+                  <button
+                    type="button"
+                    aria-pressed={preset === "previous"}
+                    className={`preset-previous${preset === "previous" ? " selected" : ""}`}
+                    onClick={() => setPreset("previous")}
+                  >
+                    <b>Last used</b>
+                    <small>
+                      {number(previousSettings.startingChips)} chips ·{" "}
+                      {previousSettings.turnSeconds}s turns ·{" "}
+                      {previousSettings.maxPlayers} seats
+                    </small>
+                  </button>
+                )}
                 {[
                   ["classic", "Standard", "2,000 chips · 30s turns"],
                   ["quick", "Fast", "1,000 chips · 20s turns"],
@@ -105,9 +138,9 @@ export default function Setup({ mode, onClose, initialAvatar, invite }) {
                 ))}
               </div>
               <p className="tiny muted">
-                {preset === "chill"
-                  ? "Blinds stay at 10 / 20."
-                  : `Blinds start at 10 / 20 and double every ${presets[preset].blindIncreaseEvery} hands.`}{" "}
+                {selectedSettings.blindIncreaseEvery === 0
+                  ? `Blinds stay at ${number(selectedSettings.smallBlind)} / ${number(selectedSettings.bigBlind)}.`
+                  : `Blinds start at ${number(selectedSettings.smallBlind)} / ${number(selectedSettings.bigBlind)} and double every ${selectedSettings.blindIncreaseEvery} ${selectedSettings.blindIncreaseEvery === 1 ? "hand" : "hands"}.`}{" "}
                 Customize more in the lobby.
               </p>
             </>

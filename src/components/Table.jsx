@@ -12,6 +12,7 @@ import { isWinningCard } from "../services/winningCards.js";
 import { Avatar, Card, ChipStack, Suit } from "./PixelArt.jsx";
 import Controls from "./Controls.jsx";
 import ChatPanel from "./ChatPanel.jsx";
+import TableActions from "./TableActions.jsx";
 
 // Phones reserve the middle for a single, readable row of community cards.
 const phoneSeats = {
@@ -78,9 +79,10 @@ export default function Table() {
   const seconds = game.deadline
     ? Math.max(0, Math.ceil((game.deadline - now) / 1000))
     : null;
-  const nextSeconds = game.nextHandAt
-    ? Math.max(0, Math.ceil((game.nextHandAt - now) / 1000))
-    : null;
+  const nextSeconds =
+    game.nextHandAt && !room.paused
+      ? Math.max(0, Math.ceil((game.nextHandAt - now) / 1000))
+      : null;
   const prev = useRef({
     hand: game.handNumber,
     street: game.street,
@@ -114,6 +116,9 @@ export default function Table() {
     };
   }, [game.handNumber, game.street, game.actor, game.players, playerId]);
   const result = game.result;
+  const ending =
+    game.street === "showdown" &&
+    game.players.filter((p) => p.chips > 0).length < 2;
   return (
     <main className="table-page">
       <div className="table-toolbar">
@@ -140,6 +145,7 @@ export default function Table() {
           </span>
         </div>
       </div>
+      <TableActions />
       <div className="table-layout">
         <section className="play-area" aria-label="Poker table">
           <div className={`table-stage seats-${players.length}`}>
@@ -232,7 +238,7 @@ export default function Table() {
               return (
                 <div
                   key={player.id}
-                  className={`table-seat ${self ? "self" : ""} ${phoneY <= 15 ? "phone-top" : ""} ${x > 65 ? "right-side" : ""} ${acting ? "acting" : ""} ${acting && seconds !== null && seconds <= 8 ? "urgent" : ""} ${player.folded ? "folded" : ""} ${won ? "winner" : ""}`}
+                  className={`table-seat ${self ? "self" : ""} ${phoneY <= 15 ? "phone-top" : ""} ${x > 65 ? "right-side" : ""} ${acting ? "acting" : ""} ${acting && seconds !== null && seconds <= 8 ? "urgent" : ""} ${player.waitingForNextHand ? "waiting-next-hand" : player.folded ? "folded" : ""} ${won ? "winner" : ""}`}
                   style={{
                     "--seat-x": `${x}%`,
                     "--seat-y": `${y}%`,
@@ -295,24 +301,26 @@ export default function Table() {
                   <div className="seat-action">
                     {!online && !player.isBot
                       ? "RECONNECTING"
-                      : won
-                        ? `+${number(won.amount)} ✦`
-                        : player.eliminatedAt
-                          ? "ELIMINATED"
-                          : acting
-                            ? self
-                              ? "YOUR TURN"
-                              : "TO ACT"
-                            : player.allIn
-                              ? "ALL IN"
-                              : player.lastAction ||
-                                (game.smallBlindSeat === originalIndex
-                                  ? "SMALL BLIND"
-                                  : game.bigBlindSeat === originalIndex
-                                    ? "BIG BLIND"
-                                    : acting
-                                      ? "THINKING…"
-                                      : "")}
+                      : player.waitingForNextHand
+                        ? "NEXT HAND"
+                        : won
+                          ? `+${number(won.amount)} ✦`
+                          : player.eliminatedAt
+                            ? "ELIMINATED"
+                            : acting
+                              ? self
+                                ? "YOUR TURN"
+                                : "TO ACT"
+                              : player.allIn
+                                ? "ALL IN"
+                                : player.lastAction ||
+                                  (game.smallBlindSeat === originalIndex
+                                    ? "SMALL BLIND"
+                                    : game.bigBlindSeat === originalIndex
+                                      ? "BIG BLIND"
+                                      : acting
+                                        ? "THINKING…"
+                                        : "")}
                   </div>
                   {player.bet > 0 && (
                     <span className={`seat-bet ${y > 65 ? "above" : "below"}`}>
@@ -326,13 +334,18 @@ export default function Table() {
             <div className="table-caption">
               {nextSeconds !== null && (
                 <span>
-                  NEXT DEAL IN {nextSeconds}s{" "}
+                  {ending ? "RESULTS" : "NEXT DEAL"} IN {nextSeconds}s{" "}
                   {room.hostId === playerId && (
                     <button
-                      disabled={state.busy}
+                      disabled={
+                        state.busy ||
+                        room.paused ||
+                        (state.mode === "online" &&
+                          state.connection !== "connected")
+                      }
                       onClick={() => run(gameClient.next)}
                     >
-                      DEAL NOW →
+                      {ending ? "VIEW RESULTS →" : "DEAL NOW →"}
                     </button>
                   )}
                 </span>

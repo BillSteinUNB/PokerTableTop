@@ -77,6 +77,17 @@ async function setup(t, options = {}) {
   return { ...h, a, b, code: created.room.code };
 }
 
+function rigHeadsUpWinner(game) {
+  const cards = (value) => value.split(" ").map((card) => ({
+    rank: card.slice(0, -1),
+    suit: { s: "spades", h: "hearts", d: "diamonds", c: "clubs" }[card.at(-1)],
+  }));
+  game.players[0].hand = cards("As Ac");
+  game.players[1].hand = cards("Ks Kc");
+  // Burn, flop, burn, turn, burn, river: ensure the final hand cannot tie.
+  game.deck = cards("Qh 2h 3d 7c Qs 9s Qd Jh").reverse();
+}
+
 test("private room lifecycle, lowercase join, ready gates, safe public snapshots", async (t) => {
   const { a, b, server, code } = await setup(t);
   assert.equal(server.rooms.size, 1);
@@ -147,6 +158,325 @@ test("new animal and human characters survive online play and seat recovery", as
     resumed.game.players.find((player) => player.id === joined.playerId).avatar,
     "skater",
   );
+});
+
+test("late join waits for the next hand without changing bets, private cards or the turn clock", async (t) => {
+  const { a, b, client, server, code } = await setup(t);
+  await request(a.socket, "game:start");
+  await request(a.socket, "game:action", {
+    action: "raise",
+    amount: 80,
+    revision: a.state.game.revision,
+  });
+  const room = server.rooms.get(code);
+  const before = structuredClone(room.game.serialize());
+  const deadline = room.deadline;
+  const newcomer = await client();
+  const joined = await request(newcomer.socket, "room:join", {
+    code,
+    profile: { name: "Charlie", avatar: "chef", chips: 999999 },
+    token: newcomer.token,
+  });
+  assert.equal(joined.ok, true);
+  assert.equal(joined.game.revision, before.revision);
+  assert.equal(joined.game.deadline, deadline);
+  assert.equal(joined.game.actor, before.actor);
+  assert.equal(joined.game.pot, 100);
+  assert.deepEqual(room.game.players.slice(0, 2), before.players);
+  assert.deepEqual(room.game.deck, before.deck);
+  assert.deepEqual(room.game.events, before.events);
+  assert.equal(room.game.totalChips, before.totalChips + room.settings.startingChips);
+  const waiting = joined.game.players.find((p) => p.id === joined.playerId);
+  assert.equal(waiting.waitingForNextHand, true);
+  assert.equal(waiting.chips, room.settings.startingChips);
+  assert.deepEqual(waiting.hand, []);
+  assert.equal(joined.game.legal, null);
+  assert.equal(joined.room.players.find((p) => p.id === joined.playerId).ready, true);
+  assert.ok(joined.game.players.slice(0, 2).every((p) => p.hand.every((card) => card === null)));
+  assert.equal((await request(newcomer.socket, "game:action", {
+    action: "all-in", revision: before.revision,
+  })).ok, false);
+  // The existing actor's action from before the join is still valid.
+  assert.equal((await request(b.socket, "game:action", {
+    action: "fold", revision: before.revision,
+  })).ok, true);
+  assert.equal(room.game.street, "showdown");
+  assert.ok(room.game.result.winners.every((p) => p.id !== joined.playerId));
+  assert.equal(room.game.players[2].chips, room.settings.startingChips);
+  assert.equal((await request(a.socket, "game:next", {
+    revision: room.game.revision,
+  })).ok, true);
+  await waitFor(() => newcomer.state.game.handNumber === 2);
+  const dealt = newcomer.state.game.players.find((p) => p.id === joined.playerId);
+  assert.equal(dealt.waitingForNextHand, false);
+  assert.equal(dealt.hand.length, 2);
+  assert.ok(dealt.hand.every(Boolean));
+  room.game.assertChips();
+});
+
+test("joining a showdown preserves its countdown and automatically deals the new seat", async (t) => {
+  const { a, client, server, code } = await setup(t, { showdownMs: 250 });
+  await request(a.socket, "game:start");
+  await request(a.socket, "game:action", {
+    action: "fold", revision: a.state.game.revision,
+  });
+  const room = server.rooms.get(code);
+  const result = structuredClone(room.game.result);
+  const nextHandAt = room.nextHandAt;
+  const newcomer = await client();
+  const joined = await request(newcomer.socket, "room:join", {
+    code, profile: { name: "Charlie" }, token: newcomer.token,
+  });
+  assert.equal(joined.ok, true);
+  assert.deepEqual(joined.game.result, result);
+  assert.equal(joined.game.nextHandAt, nextHandAt);
+  assert.equal(joined.game.players[2].waitingForNextHand, true);
+  await waitFor(() => newcomer.state.game.handNumber === 2);
+  assert.ok(newcomer.state.game.players[2].hand.every(Boolean));
+  assert.equal(newcomer.state.game.players[2].waitingForNextHand, false);
+});
+
+test("new arrivals cannot claim reserved seats at a full table", async (t) => {
+  const { a, b, client, server, code } = await setup(t);
+  await request(a.socket, "room:configure", { settings: { maxPlayers: 2 } });
+  await request(b.socket, "room:ready", { ready: true });
+  await request(a.socket, "game:start");
+  b.socket.disconnect();
+  await waitFor(() => !server.rooms.get(code).players[1].connected);
+  const newcomer = await client();
+  const joined = await request(newcomer.socket, "room:join", {
+    code, profile: { name: "Charlie" }, token: newcomer.token,
+  });
+  assert.equal(joined.ok, false);
+  assert.match(joined.error, /full/);
+  assert.equal(server.rooms.get(code).game.players.length, 2);
+  assert.equal(server.rooms.get(code).players.length, 2);
+});
+
+test("a new arrival restarts an offline table's clock and can recover their waiting seat", async (t) => {
+  const { a, b, client, server, code } = await setup(t, { turnMs: 180 });
+  await request(a.socket, "game:start");
+  a.socket.disconnect();
+  b.socket.disconnect();
+  const room = server.rooms.get(code);
+  await waitFor(() => room.deadline === null);
+  const newcomer = await client();
+  const joined = await request(newcomer.socket, "room:join", {
+    code, profile: { name: "Charlie" }, token: newcomer.token,
+  });
+  assert.equal(joined.ok, true);
+  assert.ok(joined.game.deadline > Date.now());
+  assert.equal(joined.room.hostId, joined.playerId);
+  const replacement = await client();
+  const resumed = await request(replacement.socket, "room:resume", { token: newcomer.token });
+  assert.equal(resumed.playerId, joined.playerId);
+  assert.equal(resumed.game.players.length, 3);
+  assert.equal(resumed.game.players[2].waitingForNextHand, true);
+  assert.equal(resumed.game.deadline, joined.game.deadline);
+  await waitFor(() => room.game.street === "showdown", "original actor's timeout");
+  assert.equal(room.game.result.winners[0].id, b.id);
+});
+
+test("host can queue or cancel a break without extending a turn, then resume after the hand", async (t) => {
+  const { a, b, server, code } = await setup(t, { showdownMs: 140 });
+  assert.equal((await request(a.socket, "game:pause", { paused: true })).ok, false);
+  await request(a.socket, "game:start");
+  const room = server.rooms.get(code);
+  const deadline = room.deadline;
+  const revision = room.game.revision;
+  assert.equal((await request(b.socket, "game:pause", { paused: true })).ok, false);
+  assert.equal((await request(a.socket, "game:pause", { paused: "yes" })).ok, false);
+  assert.equal((await request(a.socket, "game:pause", { paused: true })).ok, true);
+  assert.equal(a.state.room.pauseAfterHand, true);
+  assert.equal(a.state.room.paused, false);
+  assert.equal(room.deadline, deadline);
+  assert.equal(room.game.revision, revision);
+  assert.equal((await request(a.socket, "game:pause", { paused: false })).ok, true);
+  assert.equal(a.state.room.pauseAfterHand, false);
+  assert.equal(room.deadline, deadline);
+  await request(a.socket, "game:pause", { paused: true });
+  assert.equal((await request(a.socket, "game:action", { action: "fold", revision })).ok, true);
+  assert.equal(a.state.room.paused, true);
+  assert.equal(room.nextHandAt, null);
+  assert.equal(room.timer, null);
+  await pause(200);
+  assert.equal(room.game.handNumber, 1);
+  assert.equal((await request(a.socket, "game:next", { revision: room.game.revision })).ok, false);
+  assert.equal((await request(a.socket, "room:chat", { text: "Back in a minute" })).ok, true);
+  assert.equal((await request(a.socket, "game:pause", { paused: false })).ok, true);
+  assert.equal(a.state.room.paused, false);
+  assert.equal(a.state.room.pauseAfterHand, false);
+  assert.ok(room.nextHandAt > Date.now());
+  await waitFor(() => room.game.handNumber === 2);
+});
+
+test("a showdown break survives host migration, reconnects and new arrivals", async (t) => {
+  const { a, b, client, server, code } = await setup(t, { showdownMs: 200 });
+  await request(a.socket, "game:start");
+  await request(a.socket, "game:action", { action: "fold", revision: a.state.game.revision });
+  assert.equal((await request(a.socket, "game:pause", { paused: true })).ok, true);
+  const room = server.rooms.get(code);
+  assert.equal(room.paused, true);
+  assert.equal(room.nextHandAt, null);
+  a.socket.disconnect();
+  await waitFor(() => b.state.room.hostId === b.id);
+  const recovered = await client();
+  const resumed = await request(recovered.socket, "room:resume", { token: a.token });
+  assert.equal(resumed.room.paused, true);
+  assert.equal(resumed.game.nextHandAt, null);
+  assert.equal((await request(recovered.socket, "game:pause", { paused: false })).ok, false);
+  const newcomer = await client();
+  const joined = await request(newcomer.socket, "room:join", {
+    code, profile: { name: "Charlie" }, token: newcomer.token,
+  });
+  assert.equal(joined.ok, true);
+  assert.equal(joined.room.paused, true);
+  assert.equal(joined.game.nextHandAt, null);
+  await pause(250);
+  assert.equal(room.game.handNumber, 1);
+  assert.equal((await request(b.socket, "game:pause", { paused: false })).ok, true);
+  await waitFor(() => newcomer.state.game.handNumber === 2);
+});
+
+test("a queued showdown timer cannot deal early after pausing and resuming at the same revision", async (t) => {
+  let block = false;
+  let release;
+  const storage = {
+    kind: "test",
+    load: async () => ({ version: 1, rooms: [] }),
+    save: async () => {
+      if (block) await new Promise((resolve) => { release = resolve; });
+    },
+    check: async () => {},
+    close: async () => {},
+  };
+  const { a, server, code } = await setup(t, { storage, showdownMs: 250 });
+  await request(a.socket, "game:start");
+  await request(a.socket, "game:action", { action: "fold", revision: a.state.game.revision });
+  const room = server.rooms.get(code);
+  const revision = room.game.revision;
+  block = true;
+  const saving = request(a.socket, "room:chat", { text: "Hold this write" });
+  await waitFor(() => release);
+  const pausing = request(a.socket, "game:pause", { paused: true });
+  const resuming = request(a.socket, "game:pause", { paused: false });
+  // Both requests queue behind persistence before the old timer is enqueued.
+  await pause(300);
+  block = false;
+  release();
+  assert.equal((await saving).ok, true);
+  assert.equal((await pausing).ok, true);
+  assert.equal((await resuming).ok, true);
+  await pause(40);
+  assert.equal(room.game.revision, revision);
+  assert.equal(room.game.handNumber, 1);
+  assert.ok(room.nextHandAt > Date.now());
+  await waitFor(() => room.game.handNumber === 2);
+});
+
+test("a saved break and waiting seat restore without dealing until the host resumes", async (t) => {
+  let saved = { version: 1, rooms: [] };
+  const storage = {
+    kind: "test",
+    load: async () => structuredClone(saved),
+    save: async (value) => { saved = structuredClone(value); },
+    check: async () => {},
+    close: async () => {},
+  };
+  const { a, client, server, code } = await setup(t, { storage, showdownMs: 120 });
+  await request(a.socket, "game:start");
+  const legacySnapshot = structuredClone(saved);
+  delete legacySnapshot.rooms[0].paused;
+  delete legacySnapshot.rooms[0].pauseAfterHand;
+  for (const player of legacySnapshot.rooms[0].game.players)
+    delete player.waitingForNextHand;
+  await request(a.socket, "game:pause", { paused: true });
+  await request(a.socket, "game:action", { action: "fold", revision: a.state.game.revision });
+  const newcomer = await client();
+  const joined = await request(newcomer.socket, "room:join", {
+    code, profile: { name: "Charlie" }, token: newcomer.token,
+  });
+  assert.equal(joined.ok, true);
+  assert.equal(saved.rooms[0].paused, true);
+  assert.equal(saved.rooms[0].pauseAfterHand, true);
+  assert.equal(saved.rooms[0].timerGeneration, undefined);
+  const before = structuredClone(server.rooms.get(code).game.serialize());
+  await server.close();
+  const restored = await harness(t, { storage, showdownMs: 120 });
+  const host = await restored.client();
+  const resumed = await request(host.socket, "room:resume", { token: a.token });
+  assert.equal(resumed.room.paused, true);
+  assert.equal(resumed.room.pauseAfterHand, true);
+  assert.equal(resumed.game.nextHandAt, null);
+  assert.equal(resumed.game.deadline, null);
+  assert.deepEqual(restored.server.rooms.get(code).game.serialize(), before);
+  const returning = await restored.client();
+  const returned = await request(returning.socket, "room:resume", { token: newcomer.token });
+  assert.equal(returned.playerId, joined.playerId);
+  assert.equal(returned.game.players[2].waitingForNextHand, true);
+  await pause(180);
+  assert.equal(restored.server.rooms.get(code).game.handNumber, 1);
+  assert.equal((await request(host.socket, "game:pause", { paused: false })).ok, true);
+  await waitFor(() => returning.state.game.handNumber === 2);
+  assert.equal(returning.state.game.players[2].waitingForNextHand, false);
+  await t.test("older snapshots without break or waiting-seat fields still resume", async (t) => {
+    const legacy = await harness(t, { storage: {
+      ...storage,
+      load: async () => legacySnapshot,
+      save: async () => {},
+    } });
+    const returningHost = await legacy.client();
+    const response = await request(returningHost.socket, "room:resume", { token: a.token });
+    assert.equal(response.ok, true);
+    assert.equal(response.room.paused, false);
+    assert.equal(response.room.pauseAfterHand, false);
+    assert.ok(response.game.deadline > Date.now());
+    assert.ok(response.game.players.every((p) => p.waitingForNextHand === false));
+  });
+});
+
+test("a final-hand break allows results, while a new seat before results can keep the table open", async (t) => {
+  for (const addNewSeat of [false, true]) {
+    await t.test(addNewSeat ? "new seat before results" : "completed game", async (t) => {
+      const { a, b, client, server, code } = await setup(t, { showdownMs: 200 });
+      await request(a.socket, "game:start");
+      const room = server.rooms.get(code);
+      rigHeadsUpWinner(room.game);
+      await request(a.socket, "game:pause", { paused: true });
+      await request(a.socket, "game:action", { action: "all-in", revision: room.game.revision });
+      await request(b.socket, "game:action", { action: "all-in", revision: room.game.revision });
+      assert.equal(room.game.street, "showdown");
+      assert.equal(room.game.players.filter((p) => p.chips > 0).length, 1);
+      assert.equal(room.paused, false);
+      assert.ok(room.nextHandAt > Date.now());
+      if (!addNewSeat) await waitFor(() => room.game.street === "finished");
+      const newcomer = await client();
+      const joined = await request(newcomer.socket, "room:join", {
+        code, profile: { name: "Charlie" }, token: newcomer.token,
+      });
+      assert.equal(joined.ok, addNewSeat);
+      if (addNewSeat) {
+        assert.equal(joined.room.paused, true);
+        assert.equal(joined.game.nextHandAt, null);
+        await pause(250);
+        assert.equal(room.game.handNumber, 1);
+        await request(a.socket, "game:pause", { paused: false });
+        await waitFor(() => newcomer.state.game.handNumber === 2);
+        assert.equal(room.game.active.length, 2);
+        assert.equal(newcomer.state.game.players[2].waitingForNextHand, false);
+      } else {
+        assert.match(joined.error, /finished/);
+        assert.equal(room.players.length, 2);
+        assert.equal(room.paused, false);
+        assert.equal(room.pauseAfterHand, false);
+        assert.equal((await request(a.socket, "game:pause", { paused: true })).ok, false);
+        assert.equal((await request(a.socket, "game:rematch")).ok, true);
+        assert.equal(room.game, null);
+        assert.equal(room.paused, false);
+        assert.equal(room.pauseAfterHand, false);
+      }
+    });
+  }
 });
 
 test("out-of-turn, missing revision, invalid bets and duplicate action replay", async (t) => {
@@ -533,6 +863,7 @@ test("restart restores exact deck, chips, cards, sessions and restarts the turn 
   });
   await request(socket, "room:bot");
   await request(socket, "game:start");
+  await request(socket, "game:pause", { paused: true });
   const before = first.rooms.get(created.room.code).game.serialize();
   socket.disconnect();
   await first.close();
@@ -563,4 +894,11 @@ test("restart restores exact deck, chips, cards, sessions and restarts the turn 
     before,
   );
   assert.ok(resumed.game.deadline > Date.now());
+  assert.equal(resumed.room.pauseAfterHand, true);
+  assert.equal(resumed.room.paused, false);
+  assert.equal((await request(replacement, "game:action", {
+    action: "fold", revision: resumed.game.revision,
+  })).ok, true);
+  assert.equal(second.rooms.get(created.room.code).paused, true);
+  assert.equal(second.rooms.get(created.room.code).nextHandAt, null);
 });

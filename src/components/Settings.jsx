@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTable, run } from "../services/ui.js";
 import { gameClient } from "../services/gameClient.js";
+import { saveTablePreferences } from "../services/tablePreferences.js";
 import Modal from "./Modal.jsx";
 
 export default function Settings({ onClose }) {
@@ -21,8 +22,10 @@ export default function Settings({ onClose }) {
         onSubmit={async (e) => {
           e.preventDefault();
           const ok = await run(() => gameClient.configure(settings));
-          if (ok) onClose();
-          else setError(gameClient.getSnapshot().error);
+          if (ok) {
+            saveTablePreferences(gameClient.getSnapshot().room.settings);
+            onClose();
+          } else setError(gameClient.getSnapshot().error);
         }}
       >
         <div className="settings-grid">

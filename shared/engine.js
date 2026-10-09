@@ -1,9 +1,25 @@
 import { shuffleDeck } from "./deck.js";
 import { compareHands, evaluateHand } from "./handEvaluator.js";
-import { validateSettings } from "./settings.js";
+import { validateProfile, validateSettings } from "./settings.js";
 
 export const STREETS = ["preflop", "flop", "turn", "river"];
 const publicCard = (card) => ({ rank: card.rank, suit: card.suit });
+const createPlayer = (profile, chips, waitingForNextHand = false) => ({
+  id: profile.id,
+  name: profile.name,
+  avatar: profile.avatar,
+  isBot: !!profile.isBot,
+  chips,
+  hand: [],
+  bet: 0,
+  committed: 0,
+  folded: waitingForNextHand,
+  waitingForNextHand,
+  actedAt: null,
+  lastAction: "",
+  handsWon: 0,
+  eliminatedAt: null,
+});
 
 /** One rules engine for the server and offline practice. No transport or UI dependencies. */
 export class PokerGame {
@@ -11,21 +27,9 @@ export class PokerGame {
     this.settings = validateSettings(settings);
     if (players.length < 2 || players.length > this.settings.maxPlayers)
       throw new Error("A table needs 2–8 players.");
-    this.players = players.map((p) => ({
-      id: p.id,
-      name: p.name,
-      avatar: p.avatar,
-      isBot: !!p.isBot,
-      chips: this.settings.startingChips,
-      hand: [],
-      bet: 0,
-      committed: 0,
-      folded: false,
-      actedAt: null,
-      lastAction: "",
-      handsWon: 0,
-      eliminatedAt: null,
-    }));
+    this.players = players.map((p) =>
+      createPlayer(p, this.settings.startingChips),
+    );
     this.handNumber = 0;
     this.revision = 0;
     this.dealer = -1;
@@ -41,7 +45,44 @@ export class PokerGame {
     const game = Object.assign(Object.create(PokerGame.prototype), data);
     game.deckFactory = shuffleDeck;
     game.smallBlindPosition ??= game.smallBlindSeat;
+    game.players = game.players.map((p) => ({
+      ...p,
+      waitingForNextHand: p.waitingForNextHand ?? false,
+    }));
     return game;
+  }
+
+  addPlayer(profile) {
+    if (!this.playing && this.street !== "showdown")
+      throw new Error("That game has finished. Wait for the next lobby.");
+    if (this.players.length >= this.settings.maxPlayers)
+      throw new Error("That table is full.");
+    const validated = validateProfile(profile);
+    if (
+      typeof profile.id !== "string" ||
+      !profile.id.trim() ||
+      profile.id.length > 128
+    )
+      throw new Error("Invalid player identity.");
+    if (this.players.some((p) => p.id === profile.id))
+      throw new Error("That player already has a seat.");
+    if (
+      this.players.some(
+        (p) => p.name.toLowerCase() === validated.name.toLowerCase(),
+      )
+    )
+      throw new Error("That name already has a seat. Try another.");
+    this.assertChips();
+    this.players.push(
+      createPlayer(
+        { ...validated, id: profile.id, isBot: profile.isBot },
+        this.settings.startingChips,
+        true,
+      ),
+    );
+    this.totalChips += this.settings.startingChips;
+    this.assertChips();
+    // A waiting seat cannot affect this hand or invalidate its pending action.
   }
 
   serialize() {
@@ -77,6 +118,7 @@ export class PokerGame {
     if (this.street !== "waiting" && this.street !== "showdown")
       throw new Error("Finish the current hand first.");
     const funded = this.players.filter((p) => p.chips > 0);
+    const admittingPlayers = this.players.some((p) => p.waitingForNextHand);
     if (funded.length < 2) {
       this.street = "finished";
       this.actor = -1;
@@ -123,6 +165,14 @@ export class PokerGame {
       this.smallBlindSeat === -1
         ? (this.bigBlindSeat - 1 + this.players.length) % this.players.length
         : this.smallBlindSeat;
+    if (admittingPlayers && funded.length > 2) {
+      // New seats may sit between the old button and the next small blind.
+      // Keep the big-blind rotation, then place the button before that blind
+      // position so the first live seat after it acts first on the flop.
+      this.dealer =
+        (this.smallBlindPosition - 1 + this.players.length) %
+        this.players.length;
+    }
     this.deck = this.deckFactory();
     this.board = [];
     this.result = null;
@@ -136,6 +186,7 @@ export class PokerGame {
         bet: 0,
         committed: 0,
         folded: p.chips === 0,
+        waitingForNextHand: false,
         actedAt: null,
         lastAction: "",
       });
@@ -442,6 +493,7 @@ export class PokerGame {
         chips: p.chips,
         bet: p.bet,
         folded: p.folded,
+        waitingForNextHand: p.waitingForNextHand,
         allIn: !p.chips && !p.folded && p.hand.length > 0,
         lastAction: p.lastAction,
         handsWon: p.handsWon,
