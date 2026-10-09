@@ -111,6 +111,44 @@ test("private room lifecycle, lowercase join, ready gates, safe public snapshots
   assert.equal(server.rooms.get(code).game.handNumber, 1);
 });
 
+test("new animal and human characters survive online play and seat recovery", async (t) => {
+  const { client } = await harness(t);
+  const host = await client();
+  const guest = await client();
+  const created = await request(host.socket, "room:create", {
+    profile: { name: "Capy", avatar: "capybara" },
+    token: host.token,
+  });
+  const joined = await request(guest.socket, "room:join", {
+    code: created.room.code,
+    profile: { name: "Skater", avatar: "skater" },
+    token: guest.token,
+  });
+  assert.equal(created.ok, true);
+  assert.equal(joined.ok, true);
+  assert.deepEqual(
+    joined.room.players.map((player) => player.avatar),
+    ["capybara", "skater"],
+  );
+  await request(guest.socket, "room:ready", { ready: true });
+  const started = await request(host.socket, "game:start");
+  assert.equal(started.ok, true);
+  await waitFor(() => guest.state?.game);
+  assert.deepEqual(
+    guest.state.game.players.map((player) => player.avatar),
+    ["capybara", "skater"],
+  );
+  const recovered = await client();
+  const resumed = await request(recovered.socket, "room:resume", {
+    token: guest.token,
+  });
+  assert.equal(resumed.ok, true);
+  assert.equal(
+    resumed.game.players.find((player) => player.id === joined.playerId).avatar,
+    "skater",
+  );
+});
+
 test("out-of-turn, missing revision, invalid bets and duplicate action replay", async (t) => {
   const { a, b, server, code } = await setup(t);
   await request(a.socket, "game:start");

@@ -1,7 +1,14 @@
 import { useEffect, useId, useRef } from "react";
 
-export default function Modal({ title, onClose, children, wide = false }) {
+export default function Modal({
+  title,
+  onClose,
+  children,
+  wide = false,
+  className = "",
+}) {
   const ref = useRef(null);
+  const backdropPress = useRef(false);
   const titleId = useId();
   useEffect(() => {
     const previous = document.activeElement;
@@ -10,12 +17,22 @@ export default function Modal({ title, onClose, children, wide = false }) {
   }, []);
   return (
     <dialog
-      className={`modal ${wide ? "wide" : ""}`}
+      className={`modal ${wide ? "wide" : ""} ${className}`}
       aria-labelledby={titleId}
       ref={ref}
       onCancel={onClose}
+      onPointerDown={(event) => {
+        const bounds = ref.current.getBoundingClientRect();
+        backdropPress.current =
+          event.target === ref.current &&
+          (event.clientX < bounds.left ||
+            event.clientX > bounds.right ||
+            event.clientY < bounds.top ||
+            event.clientY > bounds.bottom);
+      }}
       onClick={(event) => {
-        if (event.target === ref.current) onClose();
+        if (event.target === ref.current && backdropPress.current) onClose();
+        backdropPress.current = false;
       }}
     >
       <div className="modal-heading">

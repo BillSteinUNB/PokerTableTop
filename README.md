@@ -17,7 +17,8 @@ For a phone or another computer on the same Wi-Fi, open the **Network** address 
 
 ## What’s in this version
 
-- A custom pixel-art clubhouse, eight original code-native animal sprites, a complete pixel card deck with suit pips and court art, smooth dealing/chip animations, and responsive table layouts.
+- A custom pixel-art clubhouse, 20 original pixel characters (14 animals and six people), a complete pixel card deck with suit pips and court art, smooth dealing/chip animations, and responsive table layouts.
+- A character picker with named previews, category filters, and keyboard navigation. Showdown highlights mark each winner’s best cards, with individual payouts shown below the table.
 - Stable betting controls with an amount slider, pot presets, clear validation, and all-in confirmation.
 - Original quiet arcade jazz during play, with separate music/effects toggles and volume controls in **Audio**. Preferences are saved; music pauses in hidden tabs and stops when leaving the table. Browser audio starts after an interaction.
 - A responsive lobby and table, room invitations, readiness, configurable pace, chat, reactions, recent hand history, a hand-strength hint, and an in-game poker primer.

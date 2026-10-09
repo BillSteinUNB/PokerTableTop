@@ -452,6 +452,7 @@ nav {
 .sprite-eyes {
   transform-origin: center 15px;
   animation: blink 8s steps(1) infinite;
+  animation-delay: var(--blink-delay, 0s);
 }
 @keyframes blink {
   0%,
@@ -497,11 +498,9 @@ nav {
   width: min(870px, calc(100vw - 32px));
 }
 .modal-heading {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 19px;
-  gap: 12px;
+  position: absolute;
+  top: 16px;
+  right: 20px;
 }
 .modal-heading .eyebrow {
   font-size: 8px;
@@ -510,6 +509,44 @@ nav {
   font-size: 25px;
   letter-spacing: -1px;
   margin-bottom: 12px;
+  padding-right: 40px;
+}
+.setup-actions {
+  flex-shrink: 0;
+  margin-top: 8px;
+  padding: 12px 0 4px;
+  background: #202030;
+  border-top: 1px solid #393347;
+}
+.setup-modal[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.setup-modal > h2,
+.setup-modal > p {
+  flex-shrink: 0;
+}
+.setup-modal form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.setup-form-fields {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0 4px 5px;
+  margin-inline: -4px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+.setup-modal .character-grid {
+  max-height: none;
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+.setup-actions .button {
+  margin-top: 0;
 }
 .modal p {
   font-size: 13px;
@@ -525,22 +562,6 @@ nav {
   font: 20px var(--pixel);
   letter-spacing: 6px;
 }
-.avatar-picker {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 7px;
-}
-.avatar-picker button {
-  border: 1px solid #494358;
-  background: #151623;
-  padding: 3px;
-  min-width: 0;
-}
-.avatar-picker .pixel-avatar {
-  width: 100%;
-  height: auto;
-}
-.avatar-picker button.selected,
 .preset-picker button.selected {
   border-color: var(--mint);
   background: #263b35;
@@ -1269,6 +1290,83 @@ nav {
 .winning-card {
   filter: drop-shadow(0 0 3px #b3efb0) drop-shadow(0 2px 0 #10221f);
 }
+.winning-card::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  background: var(--mint);
+  border: 1px solid #284838;
+}
+.table-seat.urgent .turn-progress {
+  background: var(--pink);
+}
+.table-seat.urgent .seat-info {
+  border-color: var(--pink);
+}
+.table-seat.self.urgent .seat-action {
+  color: var(--pink);
+}
+.hand-result {
+  padding: 12px 14px;
+  margin-top: 12px;
+  border: 1px solid #617454;
+  background: #222f2a;
+  box-shadow: 0 3px 0 #101b19;
+  animation: winner-pop 240ms ease-out;
+}
+.hand-result-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #b4c6a9;
+  font-size: 9px;
+  margin-bottom: 9px;
+}
+.hand-result-heading > span:first-child {
+  letter-spacing: 1px;
+}
+.hand-result-winners {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr));
+  gap: 12px;
+}
+.hand-result-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.hand-result-player .pixel-avatar {
+  width: 36px;
+  height: 36px;
+}
+.hand-result-player > div {
+  min-width: 0;
+}
+.hand-result-player b {
+  display: block;
+  font-size: 12px;
+  color: #edf5e7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hand-result-player small {
+  display: block;
+  font-size: 10px;
+  color: #bac7b2;
+  margin-top: 4px;
+}
+.hand-result-player > strong {
+  margin-left: auto;
+  color: var(--mint);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .playing-card.small {
   width: 32px;
   height: 45px;
@@ -1341,25 +1439,6 @@ nav {
 }
 .street-progress span.active::before {
   content: "▪ ";
-}
-.winner-banner {
-  background: #b3efb0;
-  color: #244739;
-  box-shadow: 3px 3px #10251e;
-  margin-top: 15px;
-  padding: 10px 8px;
-  min-width: 280px;
-  animation: winner-pop 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.winner-banner > span {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-}
-.winner-banner small {
-  display: block;
-  font-size: 9px;
-  margin-top: 5px;
 }
 @keyframes winner-pop {
   from {
@@ -2119,14 +2198,6 @@ nav {
     padding: 0 13px;
     font-size: 9px;
   }
-  .avatar-picker {
-    gap: 5px;
-    grid-template-columns: repeat(4, 1fr);
-  }
-  .avatar-picker .pixel-avatar {
-    width: 45px;
-    margin: auto;
-  }
   .preset-picker {
     gap: 6px;
   }
@@ -2310,18 +2381,6 @@ nav {
     font-size: 6px;
     gap: 8px;
     margin-top: 20px;
-  }
-  .winner-banner {
-    min-width: 225px;
-    width: 225px;
-    margin-top: 14px;
-    padding: 10px 5px;
-  }
-  .winner-banner > span {
-    font-size: 9px;
-  }
-  .winner-banner small {
-    font-size: 8px;
   }
   .table-seat {
     width: 76px;
@@ -2601,12 +2660,6 @@ nav {
 .folded .seat-cards {
   opacity: 0.48;
 }
-.winner-banner {
-  min-width: 0;
-  width: 100%;
-  margin-top: 11px;
-  padding: 7px 10px;
-}
 .seat-action {
   min-height: 10px;
 }
@@ -2761,15 +2814,8 @@ nav {
   .table-seat.acting:not(.self) .seat-info {
     background: #293c38;
   }
-  .community .winner-banner {
-    display: none;
-  }
   .compact-result {
     display: block;
-  }
-  .compact-result .winner-banner {
-    width: 100%;
-    margin-top: 10px;
   }
   .table-caption {
     bottom: 3px;

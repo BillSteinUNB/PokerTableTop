@@ -1,0 +1,25 @@
+// Stable IDs are stored in profiles and shared by the lobby, table and server.
+export const CHARACTERS = Object.freeze(
+  [
+    { id: "fox", name: "Fox", category: "animals" },
+    { id: "bear", name: "Bear", category: "animals" },
+    { id: "cat", name: "Cat", category: "animals" },
+    { id: "frog", name: "Frog", category: "animals" },
+    { id: "owl", name: "Owl", category: "animals" },
+    { id: "rabbit", name: "Rabbit", category: "animals" },
+    { id: "raccoon", name: "Raccoon", category: "animals" },
+    { id: "penguin", name: "Penguin", category: "animals" },
+    { id: "capybara", name: "Capybara", category: "animals" },
+    { id: "axolotl", name: "Axolotl", category: "animals" },
+    { id: "red-panda", name: "Red panda", category: "animals" },
+    { id: "bat", name: "Bat", category: "animals" },
+    { id: "dog", name: "Dog", category: "animals" },
+    { id: "turtle", name: "Turtle", category: "animals" },
+    { id: "skater", name: "Skater", category: "people" },
+    { id: "astronaut", name: "Astronaut", category: "people" },
+    { id: "punk", name: "Punk", category: "people" },
+    { id: "detective", name: "Detective", category: "people" },
+    { id: "coder", name: "Coder", category: "people" },
+    { id: "chef", name: "Chef", category: "people" },
+  ].map((character) => Object.freeze(character)),
+);

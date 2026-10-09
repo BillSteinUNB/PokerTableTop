@@ -40,6 +40,7 @@ export default function Setup({ mode, onClose, initialAvatar, invite }) {
   }
   return (
     <Modal
+      className="setup-modal"
       title={
         mode === "join"
           ? "Join a room"
@@ -57,78 +58,84 @@ export default function Setup({ mode, onClose, initialAvatar, invite }) {
             : "Choose your name, avatar, and game settings."}
       </p>
       <form onSubmit={submit}>
-        {mode === "join" && (
-          <>
-            <label className="field-label" htmlFor="room-code">
-              ROOM CODE
-            </label>
-            <input
-              className="code-input"
-              id="room-code"
-              value={code}
-              maxLength={6}
-              minLength={6}
-              required
-              autoCapitalize="characters"
-              spellCheck={false}
-              placeholder="ABC234"
-              onChange={(e) =>
-                setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
-              }
-            />
-          </>
-        )}
-        <ProfilePicker profile={profile} setProfile={setProfile} />
-        {mode === "create" && (
-          <>
-            <span className="field-label">GAME PRESET</span>
-            <div className="preset-picker">
-              {[
-                ["classic", "Standard", "2,000 chips · 30s turns"],
-                ["quick", "Fast", "1,000 chips · 20s turns"],
-                ["chill", "Relaxed", "Fixed blinds · 60s turns"],
-              ].map(([id, title, text]) => (
-                <button
-                  type="button"
-                  key={id}
-                  aria-pressed={preset === id}
-                  className={preset === id ? "selected" : ""}
-                  onClick={() => setPreset(id)}
-                >
-                  <b>{title}</b>
-                  <small>{text}</small>
-                </button>
-              ))}
-            </div>
-            <p className="tiny muted">
-              {preset === "chill"
-                ? "Blinds stay at 10 / 20."
-                : `Blinds start at 10 / 20 and double every ${presets[preset].blindIncreaseEvery} hands.`}{" "}
-              Customize more in the lobby.
+        <div className="setup-form-fields">
+          {mode === "join" && (
+            <>
+              <label className="field-label" htmlFor="room-code">
+                ROOM CODE
+              </label>
+              <input
+                className="code-input"
+                id="room-code"
+                value={code}
+                maxLength={6}
+                minLength={6}
+                required
+                autoCapitalize="characters"
+                spellCheck={false}
+                placeholder="ABC234"
+                onChange={(e) =>
+                  setCode(
+                    e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                  )
+                }
+              />
+            </>
+          )}
+          <ProfilePicker profile={profile} setProfile={setProfile} />
+          {mode === "create" && (
+            <>
+              <span className="field-label">GAME PRESET</span>
+              <div className="preset-picker">
+                {[
+                  ["classic", "Standard", "2,000 chips · 30s turns"],
+                  ["quick", "Fast", "1,000 chips · 20s turns"],
+                  ["chill", "Relaxed", "Fixed blinds · 60s turns"],
+                ].map(([id, title, text]) => (
+                  <button
+                    type="button"
+                    key={id}
+                    aria-pressed={preset === id}
+                    className={preset === id ? "selected" : ""}
+                    onClick={() => setPreset(id)}
+                  >
+                    <b>{title}</b>
+                    <small>{text}</small>
+                  </button>
+                ))}
+              </div>
+              <p className="tiny muted">
+                {preset === "chill"
+                  ? "Blinds stay at 10 / 20."
+                  : `Blinds start at 10 / 20 and double every ${presets[preset].blindIncreaseEvery} hands.`}{" "}
+                Customize more in the lobby.
+              </p>
+            </>
+          )}
+          {error && (
+            <p className="inline-error" role="alert">
+              {error}
             </p>
-          </>
-        )}
-        {error && (
-          <p className="inline-error" role="alert">
-            {error}
-          </p>
-        )}
-        <button
-          className="button mint full"
-          disabled={
-            busy ||
-            profile.name.trim().length < 2 ||
-            (mode === "join" && code.length !== 6)
-          }
-        >
-          {busy
-            ? "Loading…"
-            : mode === "practice"
-              ? "START PRACTICE →"
-              : mode === "join"
-                ? "JOIN ROOM →"
-                : "CREATE ROOM →"}
-        </button>
+          )}
+        </div>
+        <div className="setup-actions">
+          <button
+            className="button mint full"
+            disabled={
+              busy ||
+              profile.name.trim().length < 2 ||
+              (mode === "join" && code.length !== 6)
+            }
+          >
+            {busy
+              ? "Loading…"
+              : mode === "practice"
+                ? "START PRACTICE →"
+                : mode === "join"
+                  ? "JOIN ROOM →"
+                  : "CREATE ROOM →"}
+          </button>
+        </div>
       </form>
     </Modal>
   );

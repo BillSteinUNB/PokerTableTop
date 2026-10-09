@@ -8,6 +8,7 @@ import {
 } from "../services/ui.js";
 import { gameClient } from "../services/gameClient.js";
 import { audio } from "../services/audio.js";
+import { isWinningCard } from "../services/winningCards.js";
 import { Avatar, Card, ChipStack, Suit } from "./PixelArt.jsx";
 import Controls from "./Controls.jsx";
 import ChatPanel from "./ChatPanel.jsx";
@@ -191,15 +192,7 @@ export default function Table() {
                     card={game.board[i]}
                     ghost={!game.board[i]}
                     index={game.street === "flop" ? i : 0}
-                    winner={
-                      !!result?.revealed &&
-                      !!game.board[i] &&
-                      result.hands[result.winners[0]?.id]?.cards.some(
-                        (c) =>
-                          c.rank === game.board[i].rank &&
-                          c.suit === game.board[i].suit,
-                      )
-                    }
+                    winner={isWinningCard(result, game.board[i])}
                   />
                 ))}
               </div>
@@ -239,7 +232,7 @@ export default function Table() {
               return (
                 <div
                   key={player.id}
-                  className={`table-seat ${self ? "self" : ""} ${phoneY <= 15 ? "phone-top" : ""} ${x > 65 ? "right-side" : ""} ${acting ? "acting" : ""} ${player.folded ? "folded" : ""} ${won ? "winner" : ""}`}
+                  className={`table-seat ${self ? "self" : ""} ${phoneY <= 15 ? "phone-top" : ""} ${x > 65 ? "right-side" : ""} ${acting ? "acting" : ""} ${acting && seconds !== null && seconds <= 8 ? "urgent" : ""} ${player.folded ? "folded" : ""} ${won ? "winner" : ""}`}
                   style={{
                     "--seat-x": `${x}%`,
                     "--seat-y": `${y}%`,
@@ -295,6 +288,7 @@ export default function Table() {
                         key={`${game.handNumber}-${n}-${!!card}`}
                         index={n}
                         small={!self}
+                        winner={isWinningCard(result, card, player.id)}
                       />
                     ))}
                   </div>
@@ -305,8 +299,10 @@ export default function Table() {
                         ? `+${number(won.amount)} ✦`
                         : player.eliminatedAt
                           ? "ELIMINATED"
-                          : self && acting
-                            ? "YOUR TURN"
+                          : acting
+                            ? self
+                              ? "YOUR TURN"
+                              : "TO ACT"
                             : player.allIn
                               ? "ALL IN"
                               : player.lastAction ||
@@ -345,7 +341,11 @@ export default function Table() {
           </div>
           {result && (
             <div className="compact-result">
-              <HandResult result={result} key={game.handNumber} />
+              <HandResult
+                result={result}
+                players={game.players}
+                key={game.handNumber}
+              />
             </div>
           )}
           <Controls />
@@ -359,19 +359,27 @@ export default function Table() {
   );
 }
 
-function HandResult({ result }) {
+function HandResult({ result, players }) {
   return (
-    <div className="winner-banner">
-      <span>
-        ✦ {result.winners.map((p) => p.name).join(" + ")}{" "}
-        {result.winners.length > 1 ? "WIN" : "WINS"} ✦
-      </span>
-      <small>
-        {result.winners
-          .map((p) => p.handName)
-          .filter((v, i, a) => a.indexOf(v) === i)
-          .join(" · ")}
-      </small>
-    </div>
+    <section className="hand-result" aria-label="Hand result">
+      <div className="hand-result-heading">
+        <span>{result.winners.length > 1 ? "POT WINNERS" : "HAND WINNER"}</span>
+        <span>{number(result.total)} awarded</span>
+      </div>
+      <div className="hand-result-winners">
+        {result.winners.map((winner) => (
+          <div className="hand-result-player" key={winner.id}>
+            <Avatar
+              kind={players.find((player) => player.id === winner.id)?.avatar}
+            />
+            <div>
+              <b title={winner.name}>{winner.name}</b>
+              <small>{winner.handName}</small>
+            </div>
+            <strong>+{number(winner.amount)}</strong>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

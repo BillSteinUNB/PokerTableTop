@@ -1,3 +1,5 @@
+import { CHARACTERS } from "./characters.js";
+
 export const DEFAULT_SETTINGS = Object.freeze({
   startingChips: 2000,
   smallBlind: 10,
@@ -37,16 +39,7 @@ export function validateSettings(input = {}) {
   return value;
 }
 
-export const AVATARS = [
-  "fox",
-  "bear",
-  "cat",
-  "frog",
-  "owl",
-  "rabbit",
-  "raccoon",
-  "penguin",
-];
+export const AVATARS = Object.freeze(CHARACTERS.map(({ id }) => id));
 export function validateProfile(input) {
   if (!input || typeof input.name !== "string")
     throw new Error("Enter a name for your seat.");
